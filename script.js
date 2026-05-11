@@ -833,106 +833,150 @@ window.renderAnalyticsChart = function () {
         </style>
       `;
 
-      setTimeout(() => {
-        const demoDeals = clients.filter((c) => c?.status === 'Demo');
-        const demoCount = demoDeals.length;
-        const demoTotal = demoDeals.reduce((sum, c) => {
-          const v = Number(c?.totalValue);
-          return sum + (Number.isFinite(v) ? v : 0);
-        }, 0);
+      (async () => {
+        // NOTE: This UI runs in-browser; storing API keys in frontend is not secure.
+        // This is a demo wiring. For production, proxy through your backend.
+        const OPENROUTER_API_KEY = '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'; // <-- вставити API ключ сюди
 
-        const actualRevenue = clients.reduce((sum, c) => {
-          const v = Number(c?.totalValue);
-          return sum + (Number.isFinite(v) ? v : 0);
-        }, 0);
+        try {
+          const promptData = clients.map((c) => ({
+            name: c?.contactName ?? c?.companyName ?? 'Unknown',
+            status: c?.status ?? 'Lead',
+            value: Number(c?.totalValue) || 0,
+          }));
 
-        const expectedRevenue = actualRevenue * 1.2;
+          const actualTotal = promptData.reduce((sum, c) => sum + (c.value || 0), 0);
 
-        const insightText = `AI Insight: You have ${formatUSD(demoTotal)} stuck in Demo (${demoCount} deal${demoCount === 1 ? '' : 's'}). Focus on closing these deals!`;
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.0-flash-001',
+              messages: [
+                {
+                  role: 'system',
+                  content:
+                    'Ти комерційний директор. Проаналізуй масив угод. ' +
+                    'Поверни суворо і ТІЛЬКИ валідний JSON (без markdown, без пояснень) у форматі: ' +
+                    '{"insight":"коротка порада українською (1-2 речення)","expectedTotal":number}. ' +
+                    'expectedTotal — реалістичний прогноз доходу (приблизно 1.2x від actualTotal).',
+                },
+                {
+                  role: 'user',
+                  content: JSON.stringify({ clients: promptData, actualTotal }),
+                },
+              ],
+            }),
+          });
 
-        aiContent.innerHTML = `
-          <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
-          <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
-            ${insightText}
-          </div>
-          <div style="height: 220px;">
-            <canvas id="aiRevenueBarChart"></canvas>
-          </div>
-        `;
+          if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
 
-        if (typeof window.Chart !== 'undefined') {
-          const barCanvas = document.getElementById('aiRevenueBarChart');
-          if (barCanvas) {
-            if (window.aiRevenueBarChartInstance && typeof window.aiRevenueBarChartInstance.destroy === 'function') {
-              window.aiRevenueBarChartInstance.destroy();
+          const data = await response.json();
+          let aiText = data?.choices?.[0]?.message?.content;
+          if (typeof aiText !== 'string') throw new Error('Unexpected AI response shape');
+
+          aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+          const aiResult = JSON.parse(aiText);
+
+          const insightText = String(aiResult?.insight ?? '');
+          const expectedRevenue = Number(aiResult?.expectedTotal);
+
+          const safeExpected = Number.isFinite(expectedRevenue) ? expectedRevenue : actualTotal * 1.2;
+
+          aiContent.innerHTML = `
+            <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
+            <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
+              ${insightText}
+            </div>
+            <div style="height: 220px;">
+              <canvas id="aiRevenueBarChart"></canvas>
+            </div>
+          `;
+
+          if (typeof window.Chart !== 'undefined') {
+            const barCanvas = document.getElementById('aiRevenueBarChart');
+            if (barCanvas) {
+              if (window.aiRevenueBarChartInstance && typeof window.aiRevenueBarChartInstance.destroy === 'function') {
+                window.aiRevenueBarChartInstance.destroy();
+              }
+
+              window.aiRevenueBarChartInstance = new window.Chart(barCanvas, {
+                type: 'bar',
+                data: {
+                  labels: ['Expected vs Actual Revenue'],
+                  datasets: [
+                    {
+                      label: 'Actual Revenue',
+                      data: [actualTotal],
+                      backgroundColor: 'rgba(59,130,246,0.75)',
+                      borderColor: '#3B82F6',
+                      borderWidth: 1,
+                    },
+                    {
+                      label: 'Expected Revenue',
+                      data: [safeExpected],
+                      backgroundColor: 'rgba(245,158,11,0.70)',
+                      borderColor: '#F59E0B',
+                      borderWidth: 1,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      labels: {
+                        color: 'rgba(230,237,243,0.92)',
+                      },
+                      position: 'bottom',
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => {
+                          const v = Number(ctx.parsed?.y);
+                          return `${ctx.dataset.label}: ${formatUSD(v)}`;
+                        },
+                      },
+                    },
+                  },
+                  scales: {
+                    x: {
+                      ticks: { color: 'rgba(230,237,243,0.92)' },
+                      grid: { display: false },
+                    },
+                    y: {
+                      ticks: {
+                        color: 'rgba(230,237,243,0.92)',
+                        callback: (value) => {
+                          const n = Number(value);
+                          if (!Number.isFinite(n)) return '$0';
+                          return '$' + Math.round(n).toLocaleString('en-US');
+                        },
+                      },
+                      grid: { color: 'rgba(230,237,243,0.10)' },
+                    },
+                  },
+                },
+              });
             }
-
-            window.aiRevenueBarChartInstance = new window.Chart(barCanvas, {
-              type: 'bar',
-              data: {
-                labels: ['Expected vs Actual Revenue'],
-                datasets: [
-                  {
-                    label: 'Actual Revenue',
-                    data: [actualRevenue],
-                    backgroundColor: 'rgba(59,130,246,0.75)',
-                    borderColor: '#3B82F6',
-                    borderWidth: 1,
-                  },
-                  {
-                    label: 'Expected Revenue',
-                    data: [expectedRevenue],
-                    backgroundColor: 'rgba(245,158,11,0.70)',
-                    borderColor: '#F59E0B',
-                    borderWidth: 1,
-                  },
-                ],
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    labels: {
-                      color: 'rgba(230,237,243,0.92)',
-                    },
-                    position: 'bottom',
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: (ctx) => {
-                        const v = Number(ctx.parsed?.y);
-                        return `${ctx.dataset.label}: ${formatUSD(v)}`;
-                      },
-                    },
-                  },
-                },
-                scales: {
-                  x: {
-                    ticks: { color: 'rgba(230,237,243,0.92)' },
-                    grid: { display: false },
-                  },
-                  y: {
-                    ticks: {
-                      color: 'rgba(230,237,243,0.92)',
-                      callback: (value) => {
-                        const n = Number(value);
-                        if (!Number.isFinite(n)) return '$0';
-                        return '$' + Math.round(n).toLocaleString('en-US');
-                      },
-                    },
-                    grid: { color: 'rgba(230,237,243,0.10)' },
-                  },
-                },
-              },
-            });
           }
+        } catch (err) {
+          console.error(err);
+          const msg = err && err.message ? String(err.message) : String(err);
+          aiContent.innerHTML = `
+            <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">AI Error</div>
+            <div style="color: var(--text); opacity: 0.95; font-size: 14px; white-space: pre-wrap;">Failed to analyze pipeline.\n${msg}</div>
+          `;
+        } finally {
+          btn.disabled = false;
+          btn.dataset.busy = '';
+          btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast';
         }
-
-        btn.disabled = false;
-        btn.dataset.busy = '';
-        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast';
-      }, 2000);
+      })();
     });
   }
 };
