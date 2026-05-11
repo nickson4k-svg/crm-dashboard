@@ -101,7 +101,7 @@ body::after{
   border-right: 1px solid var(--border);
 }
 
-
+  
 .logo{
   font-weight:900;
   letter-spacing:.4px;
