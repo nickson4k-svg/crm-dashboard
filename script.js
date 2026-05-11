@@ -743,62 +743,200 @@ renderClients(clients);
 
 window.renderAnalyticsChart = function () {
   const canvas = document.getElementById('analyticsChart');
-  if (!canvas) return;
+  if (canvas && typeof window.Chart !== 'undefined') {
+    if (window.analyticsChartInstance && typeof window.analyticsChartInstance.destroy === 'function') {
+      window.analyticsChartInstance.destroy();
+      window.analyticsChartInstance = null;
+    }
 
-  if (window.analyticsChartInstance && typeof window.analyticsChartInstance.destroy === 'function') {
-    window.analyticsChartInstance.destroy();
-    window.analyticsChartInstance = null;
-  }
+    const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
+    const colors = {
+      Lead: '#7C4DFF',
+      Nurturing: '#F59E0B',
+      Demo: '#3B82F6',
+      Won: '#22C55E',
+      Lost: '#EF4444',
+    };
 
-  if (typeof window.Chart === 'undefined') return;
+    const totalByStatus = statuses.map((st) => {
+      return clients.reduce((sum, c) => {
+        if (c?.status !== st) return sum;
+        const v = Number(c?.totalValue);
+        return sum + (Number.isFinite(v) ? v : 0);
+      }, 0);
+    });
 
-  const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
-  const colors = {
-    Lead: '#7C4DFF',
-    Nurturing: '#F59E0B',
-    Demo: '#3B82F6',
-    Won: '#22C55E',
-    Lost: '#EF4444',
-  };
+    const backgroundColor = statuses.map((st) => colors[st]);
 
-  const totalByStatus = statuses.map((st) => {
-    return clients.reduce((sum, c) => {
-      if (c?.status !== st) return sum;
-      const v = Number(c?.totalValue);
-      return sum + (Number.isFinite(v) ? v : 0);
-    }, 0);
-  });
-
-  const backgroundColor = statuses.map((st) => colors[st]);
-
-  const chart = new window.Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels: statuses,
-      datasets: [
-        {
-          data: totalByStatus,
-          backgroundColor,
-          borderColor: '#121821',
-          borderWidth: 4,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, // ключове: не даємо Chart визначати пропорції контейнера
-      plugins: {
-        legend: {
-          labels: {
-            color: 'rgba(230,237,243,0.92)',
+    const chart = new window.Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: statuses,
+        datasets: [
+          {
+            data: totalByStatus,
+            backgroundColor,
+            borderColor: '#121821',
+            borderWidth: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // ключове: не даємо Chart визначати пропорції контейнера
+        plugins: {
+          legend: {
+            labels: {
+              color: 'rgba(230,237,243,0.92)',
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  window.analyticsChartInstance = chart;
+    window.analyticsChartInstance = chart;
+  }
+
+  // --- AI Sales Assistant (mock) ---
+  const generateBtn = document.getElementById('generateAiBtn');
+  const aiContent = document.getElementById('aiInsightsContent');
+  if (!generateBtn || !aiContent) return;
+
+  // Avoid duplicate handlers on re-renders.
+  if (!generateBtn.__aiWired) {
+    generateBtn.__aiWired = true;
+
+    generateBtn.addEventListener('click', () => {
+      const btn = generateBtn;
+
+      btn.disabled = true;
+      btn.dataset.busy = '1';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing pipeline...';
+
+      // Clear placeholder and show loading state.
+      aiContent.innerHTML = '';
+      aiContent.innerHTML = `
+        <div style="padding: 14px 0;">
+          <div style="color: var(--text); font-weight: 900; margin-bottom: 8px;">Analyzing with AI...</div>
+          <div style="height: 10px; background: rgba(230,237,243,0.10); border-radius: 999px; overflow: hidden; margin-bottom: 10px;">
+            <div style="height:100%; width:45%; background: rgba(124,77,255,0.75); animation: ai-skel 1.1s ease-in-out infinite;"></div>
+          </div>
+          <div style="height: 10px; background: rgba(230,237,243,0.10); border-radius: 999px; overflow: hidden; margin-bottom: 10px;">
+            <div style="height:100%; width:70%; background: rgba(124,77,255,0.50); animation: ai-skel 1.1s ease-in-out infinite; animation-delay: 0.15s;"></div>
+          </div>
+          <div style="height: 10px; background: rgba(230,237,243,0.10); border-radius: 999px; overflow: hidden;">
+            <div style="height:100%; width:55%; background: rgba(124,77,255,0.35); animation: ai-skel 1.1s ease-in-out infinite; animation-delay: 0.3s;"></div>
+          </div>
+        </div>
+        <style>
+          @keyframes ai-skel { 0% { transform: translateX(-20%); } 50% { transform: translateX(20%); } 100% { transform: translateX(-20%); } }
+        </style>
+      `;
+
+      setTimeout(() => {
+        const demoDeals = clients.filter((c) => c?.status === 'Demo');
+        const demoCount = demoDeals.length;
+        const demoTotal = demoDeals.reduce((sum, c) => {
+          const v = Number(c?.totalValue);
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
+
+        const actualRevenue = clients.reduce((sum, c) => {
+          const v = Number(c?.totalValue);
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
+
+        const expectedRevenue = actualRevenue * 1.2;
+
+        const insightText = `AI Insight: You have ${formatUSD(demoTotal)} stuck in Demo (${demoCount} deal${demoCount === 1 ? '' : 's'}). Focus on closing these deals!`;
+
+        aiContent.innerHTML = `
+          <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
+          <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
+            ${insightText}
+          </div>
+          <div style="height: 220px;">
+            <canvas id="aiRevenueBarChart"></canvas>
+          </div>
+        `;
+
+        if (typeof window.Chart !== 'undefined') {
+          const barCanvas = document.getElementById('aiRevenueBarChart');
+          if (barCanvas) {
+            if (window.aiRevenueBarChartInstance && typeof window.aiRevenueBarChartInstance.destroy === 'function') {
+              window.aiRevenueBarChartInstance.destroy();
+            }
+
+            window.aiRevenueBarChartInstance = new window.Chart(barCanvas, {
+              type: 'bar',
+              data: {
+                labels: ['Expected vs Actual Revenue'],
+                datasets: [
+                  {
+                    label: 'Actual Revenue',
+                    data: [actualRevenue],
+                    backgroundColor: 'rgba(59,130,246,0.75)',
+                    borderColor: '#3B82F6',
+                    borderWidth: 1,
+                  },
+                  {
+                    label: 'Expected Revenue',
+                    data: [expectedRevenue],
+                    backgroundColor: 'rgba(245,158,11,0.70)',
+                    borderColor: '#F59E0B',
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    labels: {
+                      color: 'rgba(230,237,243,0.92)',
+                    },
+                    position: 'bottom',
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => {
+                        const v = Number(ctx.parsed?.y);
+                        return `${ctx.dataset.label}: ${formatUSD(v)}`;
+                      },
+                    },
+                  },
+                },
+                scales: {
+                  x: {
+                    ticks: { color: 'rgba(230,237,243,0.92)' },
+                    grid: { display: false },
+                  },
+                  y: {
+                    ticks: {
+                      color: 'rgba(230,237,243,0.92)',
+                      callback: (value) => {
+                        const n = Number(value);
+                        if (!Number.isFinite(n)) return '$0';
+                        return '$' + Math.round(n).toLocaleString('en-US');
+                      },
+                    },
+                    grid: { color: 'rgba(230,237,243,0.10)' },
+                  },
+                },
+              },
+            });
+          }
+        }
+
+        btn.disabled = false;
+        btn.dataset.busy = '';
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast';
+      }, 2000);
+    });
+  }
 };
+
 
 
 

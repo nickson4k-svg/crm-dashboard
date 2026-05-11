@@ -118,10 +118,22 @@ function showAnalytics() {
 
   // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
   // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = '1fr 1fr';
+  grid.style.gap = '20px';
+
   grid.innerHTML = `
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: 1 / -1;">
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
       <canvas id="analyticsChart"></canvas>
+    </div>
+
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto; overflow: hidden;">
+      <h2 style="margin-top:0; margin-bottom: 18px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
+
+      <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
+
+      <div id="aiInsightsContent">Click the button to analyze your pipeline using AI.</div>
     </div>
   `;
 
