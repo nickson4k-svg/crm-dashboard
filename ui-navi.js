@@ -113,18 +113,25 @@ function showInvoices() {
 
 function showAnalytics() {
   setActiveNav('analytics');
+  const grid = document.getElementById('clientsGrid');
+  if (!grid) return;
 
-  const clientsGrid = document.getElementById('clientsGrid');
-  if (clientsGrid) {
-    clientsGrid.innerHTML = `
-      <div class="chart-wrapper" style="width:100%; max-width:600px; margin:0 auto; padding:20px; background:var(--panel2); border-radius:var(--radius-lg); border:1px solid var(--border);">
-        <canvas id="analyticsChart"></canvas>
-      </div>
-    `;
-  }
+  // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
+  // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
+  grid.innerHTML = `
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: 1 / -1;">
+      <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
+      <canvas id="analyticsChart"></canvas>
+    </div>
+  `;
 
-  renderAnalyticsChart();
+  setTimeout(() => {
+    if (typeof window.renderAnalyticsChart === 'function') {
+      window.renderAnalyticsChart();
+    }
+  }, 50);
 }
+
 
 function showClients() {
   setActiveNav('clients');
@@ -135,8 +142,13 @@ function showClients() {
   }
 }
 
+
 function wireUiNavigation() {
+  // avoid duplicate bindings
   document.querySelectorAll('.sidebar nav li[data-nav]').forEach((li) => {
+    if (li.__wired) return;
+    li.__wired = true;
+
     li.addEventListener('click', () => {
       const key = li.getAttribute('data-nav');
       if (key === 'clients') return showClients();
@@ -146,7 +158,16 @@ function wireUiNavigation() {
   });
 }
 
+
 window.CRMAdminNav = {
   wireUiNavigation,
 };
+
+// Auto-wire once DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => wireUiNavigation());
+} else {
+  wireUiNavigation();
+}
+
 

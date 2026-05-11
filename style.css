@@ -93,10 +93,14 @@ body::after{
   display:flex;
   flex-direction:column;
   gap:16px;
-
-  background: #0F141C;
+  background-color: #0F141C;
+  background-image: url("img/slide_br.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-right: 1px solid var(--border);
 }
+
 
 .logo{
   font-weight:900;

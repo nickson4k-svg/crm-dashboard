@@ -690,13 +690,14 @@ function showToast(message) {
 
 document.querySelectorAll(".sidebar nav li[data-nav]").forEach((li) => {
   const key = li.getAttribute("data-nav");
-  if (key === "clients") return;
+  if (key === "clients" || key === "analytics") return;
 
   li.addEventListener("click", (e) => {
     e.preventDefault();
     showToast("Модуль у розробці (In development)");
   });
 });
+
 
 
 clientsGrid?.addEventListener("mousemove", (e) => {
@@ -737,6 +738,69 @@ clientsGrid?.addEventListener("mouseout", (e) => {
 
 
 renderClients(clients);
+
+
+
+window.renderAnalyticsChart = function () {
+  const canvas = document.getElementById('analyticsChart');
+  if (!canvas) return;
+
+  if (window.analyticsChartInstance && typeof window.analyticsChartInstance.destroy === 'function') {
+    window.analyticsChartInstance.destroy();
+    window.analyticsChartInstance = null;
+  }
+
+  if (typeof window.Chart === 'undefined') return;
+
+  const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
+  const colors = {
+    Lead: '#7C4DFF',
+    Nurturing: '#F59E0B',
+    Demo: '#3B82F6',
+    Won: '#22C55E',
+    Lost: '#EF4444',
+  };
+
+  const totalByStatus = statuses.map((st) => {
+    return clients.reduce((sum, c) => {
+      if (c?.status !== st) return sum;
+      const v = Number(c?.totalValue);
+      return sum + (Number.isFinite(v) ? v : 0);
+    }, 0);
+  });
+
+  const backgroundColor = statuses.map((st) => colors[st]);
+
+  const chart = new window.Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: statuses,
+      datasets: [
+        {
+          data: totalByStatus,
+          backgroundColor,
+          borderColor: '#121821',
+          borderWidth: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // ключове: не даємо Chart визначати пропорції контейнера
+      plugins: {
+        legend: {
+          labels: {
+            color: 'rgba(230,237,243,0.92)',
+          },
+        },
+      },
+    },
+  });
+
+  window.analyticsChartInstance = chart;
+};
+
+
 
 
 
