@@ -836,7 +836,7 @@ window.renderAnalyticsChart = function () {
       (async () => {
         // NOTE: This UI runs in-browser; storing API keys in frontend is not secure.
         // This is a demo wiring. For production, proxy through your backend.
-        const OPENROUTER_API_KEY = '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'; // <-- вставити API ключ сюди
+        const OPENROUTER_API_KEY = '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'; // <-- вставити API ключ сюди
 
         try {
           const promptData = clients.map((c) => ({
