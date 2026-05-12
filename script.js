@@ -1,4 +1,3 @@
-
 const LS_KEY = "crm_clients";
 
 function loadClientsFromLocalStorage() {
@@ -17,15 +16,11 @@ function saveToLocalStorage() {
   try {
     window.localStorage?.setItem(LS_KEY, JSON.stringify(clients));
   } catch {
-  
   }
 }
 
 const clients = loadClientsFromLocalStorage() || (window.CRMAdminClients || []);
-
 let nextId = clients.length ? Math.max(...clients.map((c) => c.id)) + 1 : 1;
-
-
 
 const clientsGrid = document.getElementById("clientsGrid");
 const searchInput = document.getElementById("searchInput");
@@ -55,10 +50,8 @@ const deleteUserError = document.getElementById("deleteUserError");
 
 const resultsHint = document.getElementById("resultsHint");
 
-
 const profileBtn = document.getElementById("profileBtn");
 const profileMenu = document.getElementById("profileMenu");
-
 
 function escapeText(str) {
   return String(str)
@@ -110,14 +103,10 @@ function animateGridRefresh() {
   void clientsGrid.offsetHeight;
   clientsGrid.classList.add("grid-anim");
 
-  // ФІКС: Знімаємо клас анімації після того, як вона відіграла,
-  // щоб не блокувати JS 3D-ефект (transform).
   setTimeout(() => {
     clientsGrid.classList.remove("grid-anim");
   }, 200);
 }
-
-
 
 function updateSummaryStats(currentList) {
   const totalClientsEl = document.getElementById("statTotalClients");
@@ -142,11 +131,9 @@ function updateSummaryStats(currentList) {
   wonDealsEl.textContent = String(wonDeals);
 }
 
-
 function renderClients(list) {
   if (!clientsGrid) return;
 
-  
   updateSummaryStats(list);
 
   if (resultsHint) {
@@ -165,7 +152,7 @@ function renderClients(list) {
     return;
   }
 
-      clientsGrid.innerHTML = list
+  clientsGrid.innerHTML = list
     .map((client) => {
       const initial = (client.contactName || "?").slice(0, 1).toUpperCase();
       const tagClass = getStatusTagClass(client.status);
@@ -194,7 +181,7 @@ function renderClients(list) {
             </div>
           </div>
 
-            <div class="client-card__actions">
+          <div class="client-card__actions">
             <button type="button" class="btn-secondary btn-edit-user" data-edit-id="${client.id}">Редагувати</button>
             <button type="button" class="btn-secondary btn-delete-user" data-delete-id="${client.id}">Видалити</button>
           </div>
@@ -204,12 +191,10 @@ function renderClients(list) {
     .join("");
 }
 
-
-/** Filtering */
 function getFilteredClients() {
   const q = normalize(searchInput?.value);
-  const statusFilter = (document.getElementById('filterStatus')?.value || 'all');
-  const sortValue = (document.getElementById('sortClients')?.value || 'default');
+  const statusFilter = (document.getElementById("filterStatus")?.value || "all");
+  const sortValue = (document.getElementById("sortClients")?.value || "default");
 
   const filtered = clients.filter((c) => {
     const contact = normalize(c.contactName);
@@ -217,27 +202,29 @@ function getFilteredClients() {
     const status = normalize(c.status);
 
     const matchesQuery = !q || contact.includes(q) || company.includes(q) || status.includes(q);
-    const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
 
     return matchesQuery && matchesStatus;
   });
 
   const getTotal = (c) => Number(c?.totalValue);
 
-  if (sortValue === 'value-desc') {
+  if (sortValue === "value-desc") {
     filtered.sort((a, b) => (getTotal(b) || 0) - (getTotal(a) || 0));
-  } else if (sortValue === 'value-asc') {
+  } else if (sortValue === "value-asc") {
     filtered.sort((a, b) => (getTotal(a) || 0) - (getTotal(b) || 0));
-  } else if (sortValue === 'name-asc') {
-    filtered.sort((a, b) => String(a?.contactName ?? '').localeCompare(String(b?.contactName ?? ''), 'uk', { sensitivity: 'base' }));
+  } else if (sortValue === "name-asc") {
+    filtered.sort(
+      (a, b) =>
+        String(a?.contactName ?? "").localeCompare(String(b?.contactName ?? ""), "uk", {
+          sensitivity: "base",
+        })
+    );
   }
 
   return filtered;
 }
 
-
-
-/** Modal */
 function setModalMode(mode) {
   if (modalOverlay) modalOverlay.dataset.modalMode = mode;
 
@@ -252,10 +239,8 @@ function setModalMode(mode) {
   if (confirmDeleteBtn) confirmDeleteBtn.hidden = !isDelete;
 }
 
-
 function openModal() {
   if (!modalOverlay) return;
-
 
   const addModeEl = document.getElementById("addClientMode");
   const delModeEl = document.getElementById("deleteClientMode");
@@ -271,7 +256,6 @@ function openModal() {
 
   setTimeout(() => clientNameInput?.focus(), 60);
 }
-
 
 function closeModal() {
   if (!modalOverlay) return;
@@ -311,7 +295,6 @@ function validateForm() {
   const totalValueRaw = clientTotalValueInput?.value;
   const totalValue = Number(totalValueRaw);
 
-
   let ok = true;
 
   clearFieldError(clientNameInput);
@@ -342,7 +325,6 @@ function validateForm() {
   return ok;
 }
 
-
 function debounce(fn, delay = 250) {
   let t;
   return (...args) => {
@@ -359,46 +341,39 @@ const onSearchInput = debounce(() => {
 
 searchInput?.addEventListener("input", onSearchInput);
 
+const filterStatus = document.getElementById("filterStatus");
+const clearFiltersBtn = document.getElementById("clearFiltersBtn");
 
-
-const filterStatus = document.getElementById('filterStatus');
-const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-
-filterStatus?.addEventListener('change', () => {
+filterStatus?.addEventListener("change", () => {
   const filtered = getFilteredClients();
   animateGridRefresh();
   renderClients(filtered);
 });
 
-const sortClients = document.getElementById('sortClients');
-sortClients?.addEventListener('change', () => {
+const sortClients = document.getElementById("sortClients");
+sortClients?.addEventListener("change", () => {
   const filtered = getFilteredClients();
   animateGridRefresh();
   renderClients(filtered);
 });
 
-clearFiltersBtn?.addEventListener('click', () => {
-
-  if (filterStatus) filterStatus.value = 'all';
-  if (searchInput) searchInput.value = '';
+clearFiltersBtn?.addEventListener("click", () => {
+  if (filterStatus) filterStatus.value = "all";
+  if (searchInput) searchInput.value = "";
   const filtered = getFilteredClients();
   animateGridRefresh();
   renderClients(filtered);
 });
-
 
 openModalBtn?.addEventListener("click", openModal);
-
 closeModalBtn?.addEventListener("click", closeModal);
 modalOverlay?.addEventListener("click", (e) => {
   if (e.target === modalOverlay) closeModal();
 });
 
-
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && modalOverlay?.classList.contains("is-open")) closeModal();
 });
-
 
 addClientForm?.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -445,7 +420,6 @@ addClientForm?.addEventListener("submit", (e) => {
   clearErrors();
   clearDeleteError();
 
- 
   clearFieldError(clientNameInput);
   clearFieldError(companyNameInput);
   clearFieldError(clientStatusInput);
@@ -453,16 +427,213 @@ addClientForm?.addEventListener("submit", (e) => {
 
   closeModal();
 
- 
   const filtered = getFilteredClients();
   animateGridRefresh();
   renderClients(filtered);
 });
 
+confirmDeleteBtn?.addEventListener("click", () => {
+  if (modalOverlay?.dataset.modalMode !== "delete") return;
+
+  clearDeleteError();
+
+  const v = (deleteUserInput?.value || "").trim();
+  if (v.toLowerCase() !== "delete") {
+    if (deleteUserError) deleteUserError.textContent = 'Протрібно написати "delete" для підтвердження.';
+    if (deleteUserInput) deleteUserInput.classList.add("field-invalid");
+    return;
+  }
+
+  const id = Number(modalOverlay?.dataset.deleteTargetId);
+  if (Number.isFinite(id)) {
+    const idx = clients.findIndex((c) => c.id === id);
+    if (idx !== -1) clients.splice(idx, 1);
+  }
+
+  saveToLocalStorage();
+  closeModal();
+
+  const filtered = getFilteredClients();
+  animateGridRefresh();
+  renderClients(filtered);
+});
+
+function closeProfileMenu() {
+  if (!profileMenu) return;
+  profileMenu.hidden = true;
+}
+
+function toggleProfileMenu() {
+  if (!profileMenu) return;
+  const isHidden = profileMenu.hidden;
+  profileMenu.hidden = !isHidden;
+  const expanded = !isHidden;
+  if (profileBtn) profileBtn.setAttribute("aria-expanded", String(expanded));
+}
+
+function wireProfileMenuActions() {
+  profileMenu?.querySelectorAll(".menu-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn && btn.id === "deleteUserBtn") {
+        openDeleteUserConfirm(NaN);
+        return;
+      }
+      closeProfileMenu();
+    });
+  });
+}
+
+function openDeleteUserConfirm(targetId) {
+  if (!modalOverlay) return;
+
+  const addModeEl = document.getElementById("addClientMode");
+  const delModeEl = document.getElementById("deleteClientMode");
+  if (addModeEl) addModeEl.hidden = true;
+  if (delModeEl) delModeEl.hidden = false;
+
+  setModalMode("delete");
+
+  const title = document.getElementById("modalTitle");
+  if (title) title.textContent = "Видалення користувача";
+
+  modalOverlay.dataset.deleteTargetId = String(targetId ?? "");
+
+  clearDeleteError();
+  if (deleteUserInput) deleteUserInput.value = "";
+
+  modalOverlay.classList.add("is-open");
+  modalOverlay.setAttribute("aria-hidden", "false");
+
+  setTimeout(() => deleteUserInput?.focus(), 60);
+}
+
+function openEditModal(editId) {
+  if (!modalOverlay) return;
+
+  const client = clients.find((c) => c.id === editId);
+  if (!client) return;
+
+  const title = document.getElementById("modalTitle");
+  if (title) title.textContent = "Редагування клієнта";
+
+  setModalMode("edit");
+
+  modalOverlay.dataset.editTargetId = String(editId);
+
+  if (clientNameInput) clientNameInput.value = client.contactName ?? "";
+  if (companyNameInput) companyNameInput.value = client.companyName ?? "";
+  if (clientStatusInput) clientStatusInput.value = client.status ?? "Lead";
+  if (clientTotalValueInput) clientTotalValueInput.value = Number(client.totalValue ?? 0);
+
+  clearErrors();
+  clearDeleteError();
+  clearFieldError(clientNameInput);
+  clearFieldError(companyNameInput);
+  clearFieldError(clientStatusInput);
+  clearFieldError(clientTotalValueInput);
+
+  modalOverlay.classList.add("is-open");
+  modalOverlay.setAttribute("aria-hidden", "false");
+
+  setTimeout(() => clientNameInput?.focus(), 60);
+}
+
+profileBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleProfileMenu();
+});
+
+clientsGrid?.addEventListener("click", (e) => {
+  const editBtn = e.target.closest?.(".btn-edit-user");
+  if (editBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rawId = editBtn.getAttribute("data-edit-id");
+    const id = Number(rawId);
+    if (!Number.isFinite(id)) return;
+
+    openEditModal(id);
+    return;
+  }
+
+  const deleteBtn = e.target.closest?.(".btn-delete-user");
+  if (!deleteBtn) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const rawId = deleteBtn.getAttribute("data-delete-id");
+  const id = Number(rawId);
+  if (!Number.isFinite(id)) return;
+
+  openDeleteUserConfirm(id);
+});
+
+document.addEventListener("click", () => closeProfileMenu());
+wireProfileMenuActions();
+
+function showToast(message) {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+
+  container.hidden = false;
+  container.innerHTML = "";
+  container.appendChild(toast);
+
+  window.clearTimeout(showToast._t);
+  showToast._t = window.setTimeout(() => {
+    window.setTimeout(() => {
+      container.hidden = true;
+    }, 400);
+  }, 2500);
+}
+
+document.querySelectorAll(".sidebar nav li[data-nav]").forEach((li) => {
+  const key = li.getAttribute("data-nav");
+  if (key === "clients" || key === "analytics") return;
+
+  li.addEventListener("click", (e) => {
+    e.preventDefault();
+    showToast("Модуль у розробці (In development)");
+  });
+});
+
+clientsGrid?.addEventListener("mousemove", (e) => {
+  const card = e.target.closest(".client-card");
+  if (!card) return;
+
+  const rect = card.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+
+  const rotateX = ((y - centerY) / centerY) * -7;
+  const rotateY = ((x - centerX) / centerX) * 7;
+
+  card.style.transition = "none";
+  card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+});
+
+clientsGrid?.addEventListener("mouseout", (e) => {
+  const card = e.target.closest(".client-card");
+  if (!card) return;
+  if (card.contains(e.relatedTarget)) return;
+
+  card.style.transition = "transform 0.4s ease-out";
+  card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+});
+
 // CSV Export
 function csvEscape(value) {
   const s = String(value ?? "");
-  const needsQuotes = /[\n\r,\"]/.test(s);
+  const needsQuotes = /[\n\r,"]/.test(s);
   if (!needsQuotes) return s;
   return `"${s.replace(/\"/g, '""')}"`;
 }
@@ -492,270 +663,23 @@ exportCsvBtn?.addEventListener("click", () => {
   downloadTextFile("clients-report.csv", csv, "text/csv;charset=utf-8");
 });
 
-
-
-
-confirmDeleteBtn?.addEventListener("click", () => {
-  if (modalOverlay?.dataset.modalMode !== "delete") return;
-
-  clearDeleteError();
-
-  const v = (deleteUserInput?.value || "").trim();
-  if (v.toLowerCase() !== "delete") {
-    if (deleteUserError) deleteUserError.textContent = 'Протрібно написати "delete" для підтвердження.';
-    if (deleteUserInput) deleteUserInput.classList.add("field-invalid");
-    return;
-  }
-
-  const id = Number(modalOverlay?.dataset.deleteTargetId);
-  if (Number.isFinite(id)) {
-    const idx = clients.findIndex((c) => c.id === id);
-    if (idx !== -1) clients.splice(idx, 1);
-  }
-
-  saveToLocalStorage();
-
-  closeModal();
-
-
-  const filtered = getFilteredClients();
-  animateGridRefresh();
-  renderClients(filtered);
-});
-
-// Profile dropdown 
-function closeProfileMenu() {
-  if (!profileMenu) return;
-  profileMenu.hidden = true;
-}
-
-function toggleProfileMenu() {
-  if (!profileMenu) return;
-  const isHidden = profileMenu.hidden;
-  profileMenu.hidden = !isHidden;
-  const expanded = !isHidden;
-  if (profileBtn) profileBtn.setAttribute("aria-expanded", String(expanded));
-}
-
-function wireProfileMenuActions() {
-
-  profileMenu?.querySelectorAll(".menu-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-     
-      if (btn && btn.id === "deleteUserBtn") {
-      
-        openDeleteUserConfirm(NaN);
-        return;
-      }
-
-
-   
-      closeProfileMenu();
-    });
-  });
-}
-
-function openDeleteUserConfirm(targetId) {
-  if (!modalOverlay) return;
-
- 
-  const addModeEl = document.getElementById("addClientMode");
-  const delModeEl = document.getElementById("deleteClientMode");
-  if (addModeEl) addModeEl.hidden = true;
-  if (delModeEl) delModeEl.hidden = false;
-
-  setModalMode("delete");
-
-  const title = document.getElementById("modalTitle");
-  if (title) title.textContent = "Видалення користувача";
-
-  modalOverlay.dataset.deleteTargetId = String(targetId ?? "");
-
-
-  clearDeleteError();
-  if (deleteUserInput) deleteUserInput.value = "";
-
-  modalOverlay.classList.add("is-open");
-  modalOverlay.setAttribute("aria-hidden", "false");
-
-  setTimeout(() => deleteUserInput?.focus(), 60);
-}
-
-function openEditModal(editId) {
-  if (!modalOverlay) return;
-
-  const client = clients.find((c) => c.id === editId);
-  if (!client) return;
-
-  const title = document.getElementById("modalTitle");
-  if (title) title.textContent = "Редагування клієнта";
-
-  setModalMode("edit");
-
-  if (modalOverlay.dataset.editTargetId !== undefined) {
-    modalOverlay.dataset.editTargetId = String(editId);
-  } else {
-    modalOverlay.dataset.editTargetId = String(editId);
-  }
-
-
-  if (clientNameInput) clientNameInput.value = client.contactName ?? "";
-  if (companyNameInput) companyNameInput.value = client.companyName ?? "";
-  if (clientStatusInput) clientStatusInput.value = client.status ?? "Lead";
-  if (clientTotalValueInput) clientTotalValueInput.value = Number(client.totalValue ?? 0);
-
- 
-  clearErrors();
-  clearDeleteError();
-  clearFieldError(clientNameInput);
-  clearFieldError(companyNameInput);
-  clearFieldError(clientStatusInput);
-  clearFieldError(clientTotalValueInput);
-
-
-  modalOverlay.classList.add("is-open");
-  modalOverlay.setAttribute("aria-hidden", "false");
-
-  setTimeout(() => clientNameInput?.focus(), 60);
-}
-
-
-
-profileBtn?.addEventListener("click", (e) => {
-  e.stopPropagation();
-  toggleProfileMenu();
-});
-
-
-clientsGrid?.addEventListener("click", (e) => {
-  const editBtn = e.target.closest?.(".btn-edit-user");
-  if (editBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const rawId = editBtn.getAttribute("data-edit-id");
-    const id = Number(rawId);
-    if (!Number.isFinite(id)) return;
-
-    openEditModal(id);
-    return;
-  }
-
-  const deleteBtn = e.target.closest?.(".btn-delete-user");
-  if (!deleteBtn) return;
-
-  e.preventDefault();
-  e.stopPropagation();
-
-  const rawId = deleteBtn.getAttribute("data-delete-id");
-  const id = Number(rawId);
-  if (!Number.isFinite(id)) return;
-
- 
-  openDeleteUserConfirm(id);
-});
-
-
-
-document.addEventListener("click", () => closeProfileMenu());
-wireProfileMenuActions();
-
-
-function showToast(message) {
-  const container = document.getElementById("toastContainer");
-  if (!container) return;
-
-  
-  const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.textContent = message;
-
-
-  container.hidden = false;
-
-
-  container.innerHTML = "";
-  container.appendChild(toast);
-
-
-  window.clearTimeout(showToast._t);
-  showToast._t = window.setTimeout(() => {
- 
-    window.setTimeout(() => {
-      container.hidden = true;
-    }, 400);
-  }, 2500);
-}
-
-
-document.querySelectorAll(".sidebar nav li[data-nav]").forEach((li) => {
-  const key = li.getAttribute("data-nav");
-  if (key === "clients" || key === "analytics") return;
-
-  li.addEventListener("click", (e) => {
-    e.preventDefault();
-    showToast("Модуль у розробці (In development)");
-  });
-});
-
-
-
-clientsGrid?.addEventListener("mousemove", (e) => {
-  const card = e.target.closest(".client-card");
-  if (!card) return;
-
- 
-  const rect = card.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  const centerX = rect.width / 2;
-  const centerY = rect.height / 2;
-
-
-  const rotateX = ((y - centerY) / centerY) * -7;
-  const rotateY = ((x - centerX) / centerX) * 7;
-
-  
-  card.style.transition = 'none';
-
-  card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
-});
-
-clientsGrid?.addEventListener("mouseout", (e) => {
-  const card = e.target.closest(".client-card");
-  if (!card) return;
-
-  
-  if (card.contains(e.relatedTarget)) return;
-
- 
-  card.style.transition = 'transform 0.4s ease-out';
-  card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-});
-
-
-
-
 renderClients(clients);
 
-
-
 window.renderAnalyticsChart = function () {
-  const canvas = document.getElementById('analyticsChart');
-  if (canvas && typeof window.Chart !== 'undefined') {
-    if (window.analyticsChartInstance && typeof window.analyticsChartInstance.destroy === 'function') {
+  const canvas = document.getElementById("analyticsChart");
+  if (canvas && typeof window.Chart !== "undefined") {
+    if (window.analyticsChartInstance && typeof window.analyticsChartInstance.destroy === "function") {
       window.analyticsChartInstance.destroy();
       window.analyticsChartInstance = null;
     }
 
-    const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
+    const statuses = ["Lead", "Nurturing", "Demo", "Won", "Lost"];
     const colors = {
-      Lead: '#7C4DFF',
-      Nurturing: '#F59E0B',
-      Demo: '#3B82F6',
-      Won: '#22C55E',
-      Lost: '#EF4444',
+      Lead: "#7C4DFF",
+      Nurturing: "#F59E0B",
+      Demo: "#3B82F6",
+      Won: "#22C55E",
+      Lost: "#EF4444",
     };
 
     const totalByStatus = statuses.map((st) => {
@@ -769,25 +693,25 @@ window.renderAnalyticsChart = function () {
     const backgroundColor = statuses.map((st) => colors[st]);
 
     const chart = new window.Chart(canvas, {
-      type: 'doughnut',
+      type: "doughnut",
       data: {
         labels: statuses,
         datasets: [
           {
             data: totalByStatus,
             backgroundColor,
-            borderColor: '#121821',
+            borderColor: "#121821",
             borderWidth: 4,
           },
         ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false, // ключове: не даємо Chart визначати пропорції контейнера
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             labels: {
-              color: 'rgba(230,237,243,0.92)',
+              color: "rgba(230,237,243,0.92)",
             },
           },
         },
@@ -797,25 +721,20 @@ window.renderAnalyticsChart = function () {
     window.analyticsChartInstance = chart;
   }
 
-  // --- AI Sales Assistant (mock) ---
-  const generateBtn = document.getElementById('generateAiBtn');
-  const aiContent = document.getElementById('aiInsightsContent');
+  const generateBtn = document.getElementById("generateAiBtn");
+  const aiContent = document.getElementById("aiInsightsContent");
   if (!generateBtn || !aiContent) return;
 
-  // Avoid duplicate handlers on re-renders.
   if (!generateBtn.__aiWired) {
     generateBtn.__aiWired = true;
 
-    generateBtn.addEventListener('click', async () => {
+    generateBtn.addEventListener("click", async () => {
       const btn = generateBtn;
-
       btn.disabled = true;
-      btn.dataset.busy = '1';
+      btn.dataset.busy = "1";
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Аналізую воронку...`;
 
-
-      // Clear placeholder and show loading state.
-      aiContent.innerHTML = '';
+      aiContent.innerHTML = "";
       aiContent.innerHTML = `
         <div style="padding: 14px 0;">
           <div style="color: var(--text); font-weight: 900; margin-bottom: 8px;">Analyzing with AI...</div>
@@ -834,134 +753,86 @@ window.renderAnalyticsChart = function () {
         </style>
       `;
 
-      (async () => {
-<<<<<<< HEAD
-=======
-        // NOTE: This UI runs in-browser; storing API keys in frontend is not secure.
-        // This is a demo wiring. For production, proxy through your backend.
-        const OPENROUTER_API_KEY = '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'; // <-- вставити API ключ сюди
+      try {
+        const actualTotal = clients.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
 
->>>>>>> a61dc1bf3959db59912406f0c8c867881cb574bf
-        try {
-          const actualTotal = clients.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
-
-const response = await fetch('http://localhost:3000/api/forecast', {
-              method: 'POST',
+        const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json"
               },
-            body: JSON.stringify({
-              clients: clients,
-            }),
-          });
+              body: JSON.stringify({
+                clients: clients,
+              })
+            });
 
-          if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
+        if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
 
-          const aiResult = await response.json();
+        const aiResult = await response.json();
 
-          const insightText = String(aiResult?.insight ?? '');
-          const expectedRevenue = Number(aiResult?.expectedTotal);
+        const insightText = String(aiResult?.insight ?? "");
+        const expectedRevenue = Number(aiResult?.expectedTotal);
 
-          const safeExpected = Number.isFinite(expectedRevenue) ? expectedRevenue : actualTotal * 1.2;
+        const safeExpected = Number.isFinite(expectedRevenue) ? expectedRevenue : actualTotal * 1.2;
 
-          aiContent.innerHTML = `
-            <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
-            <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
-              ${insightText}
-            </div>
-            <div style="height: 220px;">
-              <canvas id="aiRevenueBarChart"></canvas>
-            </div>
-          `;
+        aiContent.innerHTML = `
+          <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
+          <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
+            ${insightText}
+          </div>
+          <div style="height: 220px;">
+            <canvas id="aiRevenueBarChart"></canvas>
+          </div>
+        `;
 
-          if (typeof window.Chart !== 'undefined') {
-            const barCanvas = document.getElementById('aiRevenueBarChart');
-            if (barCanvas) {
-              if (window.aiRevenueBarChartInstance && typeof window.aiRevenueBarChartInstance.destroy === 'function') {
-                window.aiRevenueBarChartInstance.destroy();
-              }
-
-              window.aiRevenueBarChartInstance = new window.Chart(barCanvas, {
-                type: 'bar',
-                data: {
-                  labels: ['Expected vs Actual Revenue'],
-                  datasets: [
-                    {
-                      label: 'Actual Revenue',
-                      data: [actualTotal],
-                      backgroundColor: 'rgba(59,130,246,0.75)',
-                      borderColor: '#3B82F6',
-                      borderWidth: 1,
-                    },
-                    {
-                      label: 'Expected Revenue',
-                      data: [safeExpected],
-                      backgroundColor: 'rgba(245,158,11,0.70)',
-                      borderColor: '#F59E0B',
-                      borderWidth: 1,
-                    },
-                  ],
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      labels: {
-                        color: 'rgba(230,237,243,0.92)',
-                      },
-                      position: 'bottom',
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: (ctx) => {
-                          const v = Number(ctx.parsed?.y);
-                          return `${ctx.dataset.label}: ${formatUSD(v)}`;
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    x: {
-                      ticks: { color: 'rgba(230,237,243,0.92)' },
-                      grid: { display: false },
-                    },
-                    y: {
-                      ticks: {
-                        color: 'rgba(230,237,243,0.92)',
-                        callback: (value) => {
-                          const n = Number(value);
-                          if (!Number.isFinite(n)) return '$0';
-                          return '$' + Math.round(n).toLocaleString('en-US');
-                        },
-                      },
-                      grid: { color: 'rgba(230,237,243,0.10)' },
-                    },
-                  },
-                },
-              });
+        if (typeof window.Chart !== "undefined") {
+          const barCanvas = document.getElementById("aiRevenueBarChart");
+          if (barCanvas) {
+            if (window.aiRevenueBarChartInstance && typeof window.aiRevenueBarChartInstance.destroy === "function") {
+              window.aiRevenueBarChartInstance.destroy();
             }
+
+            window.aiRevenueBarChartInstance = new window.Chart(barCanvas, {
+              type: "bar",
+              data: {
+                labels: ["Expected vs Actual Revenue"],
+                datasets: [
+                  {
+                    label: "Actual Revenue",
+                    data: [actualTotal],
+                    backgroundColor: "rgba(59,130,246,0.75)",
+                    borderColor: "#3B82F6",
+                    borderWidth: 1,
+                  },
+                  {
+                    label: "Expected Revenue",
+                    data: [safeExpected],
+                    backgroundColor: "rgba(245,158,11,0.70)",
+                    borderColor: "#F59E0B",
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+              },
+            });
           }
-        } catch (err) {
-          console.error(err);
-          const msg = err && err.message ? String(err.message) : String(err);
-          aiContent.innerHTML = `
-            <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">AI Error</div>
-            <div style="color: var(--text); opacity: 0.95; font-size: 14px; white-space: pre-wrap;">Failed to analyze pipeline.\n${msg}</div>
-          `;
-        } finally {
-          btn.disabled = false;
-          btn.dataset.busy = '';
-          btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast';
         }
-      })();
+      } catch (err) {
+        console.error(err);
+        const msg = err && err.message ? String(err.message) : String(err);
+        aiContent.innerHTML = `
+          <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">AI Error</div>
+          <div style="color: var(--text); opacity: 0.95; font-size: 14px; white-space: pre-wrap;">Failed to analyze pipeline.\n${msg}</div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.dataset.busy = "";
+        btn.innerHTML = "<i class=\"fa-solid fa-wand-magic-sparkles\"></i> Generate AI Forecast";
+      }
     });
   }
 };
-
-
-
-
-
-
 
