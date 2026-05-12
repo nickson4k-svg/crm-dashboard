@@ -433,7 +433,13 @@ nav li.active::before{
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap:16px;
   padding: 6px 0 0;
+
+  /* FIX: prevent the grid/cards from stretching uncontrollably (e.g. after Chart.js render) */
+  width: 100%;
+  max-width: 1400px;
+  box-sizing: border-box;
 }
+
 
 .grid-anim .client-card{
   animation: cardPulse .16s ease both;

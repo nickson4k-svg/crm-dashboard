@@ -118,12 +118,15 @@ function showAnalytics() {
 
   // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
   // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = '1fr 1fr';
-  grid.style.gap = '20px';
+  // Use CSS grid to avoid breaking the original clients-grid layout.
+  // changed: restore default grid settings to prevent cards from stretching after returning.
+  // changed: remove only the inline display override so CSS grid stays in charge.
+  // Use CSS to control layout; remove only inline display so cards don't “shift left”.
+  grid.style.removeProperty('display');
 
   grid.innerHTML = `
     <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
+
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
       <canvas id="analyticsChart"></canvas>
     </div>
