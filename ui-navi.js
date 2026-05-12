@@ -150,12 +150,21 @@ function showAnalytics() {
 
 function showClients() {
   setActiveNav('clients');
+
+  const grid = document.getElementById('clientsGrid');
+  if (grid) {
+    // “вбиває” всі криві інлайнові стилі й повертає Grid з CSS
+    grid.style.display = 'grid';
+    grid.innerHTML = '';
+  }
+
   if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
     const filtered = getFilteredClients();
     if (typeof animateGridRefresh === 'function') animateGridRefresh();
     renderClients(filtered);
   }
 }
+
 
 
 function wireUiNavigation() {
