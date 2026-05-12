@@ -736,9 +736,14 @@ nav li.active::before{
 }
 
 /* Responsive */
+.hidden {
+  display: none !important;
+}
+
 [hidden] {
   display: none !important;
 }
+
 
 @media (max-width: 920px){
   .sidebar{ width: 86px; padding: 18px 10px; }

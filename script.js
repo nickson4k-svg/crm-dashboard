@@ -12,15 +12,34 @@ function loadClientsFromLocalStorage() {
   }
 }
 
-function saveToLocalStorage() {
+const clients = loadClientsFromLocalStorage() || (window.CRMAdminClients || []);
+let nextId = clients.length ? Math.max(...clients.map((c) => c.id)) + 1 : 1;
+
+function persistClientsToLocalStorage(list) {
   try {
-    window.localStorage?.setItem(LS_KEY, JSON.stringify(clients));
+    window.localStorage?.setItem(LS_KEY, JSON.stringify(list));
   } catch {
   }
 }
 
-const clients = loadClientsFromLocalStorage() || (window.CRMAdminClients || []);
-let nextId = clients.length ? Math.max(...clients.map((c) => c.id)) + 1 : 1;
+// Єдина точка правди: оновлює глобальний clients, зберігає в localStorage і перерендерить UI.
+function updateAppState(newClients) {
+  const safe = Array.isArray(newClients) ? newClients : [];
+
+  // mutate in place to keep references used across the file
+  clients.length = 0;
+  clients.push(...safe);
+
+  persistClientsToLocalStorage(clients);
+
+  // render with current filters/sort
+  if (typeof getFilteredClients === "function" && typeof renderClients === "function") {
+    const filtered = getFilteredClients();
+    if (typeof animateGridRefresh === "function") animateGridRefresh();
+    renderClients(filtered);
+  }
+}
+
 
 const clientsGrid = document.getElementById("clientsGrid");
 const searchInput = document.getElementById("searchInput");
@@ -414,7 +433,7 @@ addClientForm?.addEventListener("submit", (e) => {
     };
   }
 
-  saveToLocalStorage();
+  updateAppState(clients);
 
   addClientForm.reset();
   clearErrors();
@@ -450,8 +469,10 @@ confirmDeleteBtn?.addEventListener("click", () => {
     if (idx !== -1) clients.splice(idx, 1);
   }
 
-  saveToLocalStorage();
+
+  updateAppState(clients);
   closeModal();
+
 
   const filtered = getFilteredClients();
   animateGridRefresh();
@@ -777,13 +798,14 @@ window.renderAnalyticsChart = function () {
 
         aiContent.innerHTML = `
           <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
-          <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
+          <div style="color: var(--text); opacity: 0.95; margin-bottom: 20px; line-height: 1.5; font-size: 14px;">
             ${insightText}
           </div>
-          <div style="height: 220px;">
+          <div style="position: relative; flex-grow: 1; min-height: 220px; width: 100%;">
             <canvas id="aiRevenueBarChart"></canvas>
           </div>
         `;
+
 
         if (typeof window.Chart !== "undefined") {
           const barCanvas = document.getElementById("aiRevenueBarChart");

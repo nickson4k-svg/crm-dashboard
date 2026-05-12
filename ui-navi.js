@@ -9,6 +9,7 @@ function setActiveNav(navKey) {
   });
 }
 
+
 function renderClientsHeaderLike(title, subtitle) {
   const clientsGrid = document.getElementById('clientsGrid');
   if (!clientsGrid) return;
@@ -111,32 +112,68 @@ function showInvoices() {
   );
 }
 
+function hideAllSections() {
+  // Only hide by CSS class to avoid layout “shifts”.
+  ['clientsGrid', 'invoicesSection', 'analyticsSection'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+}
+
+function showClients() {
+  setActiveNav('clients');
+  hideAllSections();
+
+  const grid = document.getElementById('clientsGrid');
+  if (grid) grid.classList.remove('hidden');
+
+  // render is owned by script.js
+  if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
+    const filtered = getFilteredClients();
+    if (typeof animateGridRefresh === 'function') animateGridRefresh();
+    renderClients(filtered);
+  }
+}
+
+function showInvoices() {
+  setActiveNav('invoices');
+  hideAllSections();
+
+  const section = document.getElementById('invoicesSection');
+  if (section) section.classList.remove('hidden');
+
+  // keep placeholder; rendering of clients-grid stays in script.js
+  // (do not touch clientsGrid inline styles)
+}
+
 function showAnalytics() {
   setActiveNav('analytics');
   const grid = document.getElementById('clientsGrid');
   if (!grid) return;
 
-  // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
-  // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
-  // Use CSS grid to avoid breaking the original clients-grid layout.
-  // changed: restore default grid settings to prevent cards from stretching after returning.
-  // changed: remove only the inline display override so CSS grid stays in charge.
-  // Use CSS to control layout; remove only inline display so cards don't “shift left”.
-  grid.style.removeProperty('display');
+  // 1. Налаштовуємо ідеальну сітку на 2 колонки
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
+  grid.style.gap = '24px';
+  grid.style.alignItems = 'stretch'; // Щоб картки були однакової висоти
 
+  // 2. Вставляємо чисту розмітку без фіксованих висот
   grid.innerHTML = `
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
-
+    <div class="chart-wrapper" style="display: flex; flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
-      <canvas id="analyticsChart"></canvas>
+      
+      <div style="position: relative; flex-grow: 1; min-height: 260px; width: 100%; display: flex; align-items: center; justify-content: center;">
+        <canvas id="analyticsChart"></canvas>
+      </div>
     </div>
 
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto; overflow: hidden;">
-      <h2 style="margin-top:0; margin-bottom: 18px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
-
-      <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
-
-      <div id="aiInsightsContent">Click the button to analyze your pipeline using AI.</div>
+    <div class="chart-wrapper" style="display: flex; flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
+      <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
+      <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:20px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
+      
+      <div id="aiInsightsContent" style="flex-grow: 1; display: flex; flex-direction: column;">
+        <div style="color: var(--muted); text-align: center; margin: auto;">Click the button to analyze your pipeline using AI.</div>
+      </div>
     </div>
   `;
 
@@ -148,26 +185,10 @@ function showAnalytics() {
 }
 
 
-function showClients() {
-  setActiveNav('clients');
-
-  const grid = document.getElementById('clientsGrid');
-  if (grid) {
-    // “вбиває” всі криві інлайнові стилі й повертає Grid з CSS
-    grid.style.display = 'grid';
-    grid.innerHTML = '';
-  }
-
-  if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
-    const filtered = getFilteredClients();
-    if (typeof animateGridRefresh === 'function') animateGridRefresh();
-    renderClients(filtered);
-  }
-}
-
 
 
 function wireUiNavigation() {
+
   // avoid duplicate bindings
   document.querySelectorAll('.sidebar nav li[data-nav]').forEach((li) => {
     if (li.__wired) return;
