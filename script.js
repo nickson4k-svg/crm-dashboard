@@ -806,12 +806,13 @@ window.renderAnalyticsChart = function () {
   if (!generateBtn.__aiWired) {
     generateBtn.__aiWired = true;
 
-    generateBtn.addEventListener('click', () => {
+    generateBtn.addEventListener('click', async () => {
       const btn = generateBtn;
 
       btn.disabled = true;
       btn.dataset.busy = '1';
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing pipeline...';
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Аналізую воронку...`;
+
 
       // Clear placeholder and show loading state.
       aiContent.innerHTML = '';
@@ -834,52 +835,29 @@ window.renderAnalyticsChart = function () {
       `;
 
       (async () => {
+<<<<<<< HEAD
+=======
         // NOTE: This UI runs in-browser; storing API keys in frontend is not secure.
         // This is a demo wiring. For production, proxy through your backend.
         const OPENROUTER_API_KEY = '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'; // <-- вставити API ключ сюди
 
+>>>>>>> a61dc1bf3959db59912406f0c8c867881cb574bf
         try {
-          const promptData = clients.map((c) => ({
-            name: c?.contactName ?? c?.companyName ?? 'Unknown',
-            status: c?.status ?? 'Lead',
-            value: Number(c?.totalValue) || 0,
-          }));
+          const actualTotal = clients.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
 
-          const actualTotal = promptData.reduce((sum, c) => sum + (c.value || 0), 0);
-
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
+const response = await fetch('http://localhost:3000/api/forecast', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
             body: JSON.stringify({
-              model: 'google/gemini-2.0-flash-001',
-              messages: [
-                {
-                  role: 'system',
-                  content:
-                    'Ти комерційний директор. Проаналізуй масив угод. ' +
-                    'Поверни суворо і ТІЛЬКИ валідний JSON (без markdown, без пояснень) у форматі: ' +
-                    '{"insight":"коротка порада українською (1-2 речення)","expectedTotal":number}. ' +
-                    'expectedTotal — реалістичний прогноз доходу (приблизно 1.2x від actualTotal).',
-                },
-                {
-                  role: 'user',
-                  content: JSON.stringify({ clients: promptData, actualTotal }),
-                },
-              ],
+              clients: clients,
             }),
           });
 
           if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
 
-          const data = await response.json();
-          let aiText = data?.choices?.[0]?.message?.content;
-          if (typeof aiText !== 'string') throw new Error('Unexpected AI response shape');
-
-          aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
-          const aiResult = JSON.parse(aiText);
+          const aiResult = await response.json();
 
           const insightText = String(aiResult?.insight ?? '');
           const expectedRevenue = Number(aiResult?.expectedTotal);
