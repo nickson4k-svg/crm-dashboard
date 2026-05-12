@@ -113,19 +113,31 @@ function showInvoices() {
 }
 
 function hideAllSections() {
+
   // Only hide by CSS class to avoid layout “shifts”.
-  ['clientsGrid', 'invoicesSection', 'analyticsSection'].forEach((id) => {
+  const ids = ['clientsGrid', 'invoicesSection', 'analyticsSection'];
+  ids.forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
 }
 
+function showSectionById(sectionId) {
+  const el = document.getElementById(sectionId);
+  if (el) el.classList.remove('hidden');
+}
+
+
 function showClients() {
   setActiveNav('clients');
-  hideAllSections();
+  hideAllSections(); // Ховаємо всі інші секції
 
   const grid = document.getElementById('clientsGrid');
-  if (grid) grid.classList.remove('hidden');
+  if (grid) {
+    // ЖОРСТКО прибираємо інлайнові стилі, які могли лишитись після аналітики/багів
+    grid.removeAttribute('style');
+    grid.classList.remove('hidden');
+  }
 
   // render is owned by script.js
   if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
@@ -148,18 +160,23 @@ function showInvoices() {
 
 function showAnalytics() {
   setActiveNav('analytics');
-  const grid = document.getElementById('clientsGrid');
-  if (!grid) return;
+  hideAllSections(); // ХОВАЄМО КЛІЄНТІВ
 
-  // 1. Налаштовуємо ідеальну сітку на 2 колонки
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
-  grid.style.gap = '24px';
-  grid.style.alignItems = 'stretch'; // Щоб картки були однакової висоти
+  // ЗВЕРТАЄМОСЯ ДО ПРАВИЛЬНОГО КОНТЕЙНЕРА АНАЛІТИКИ!
+  const analyticsContainer = document.getElementById('analyticsSection');
+  if (!analyticsContainer) return;
 
-  // 2. Вставляємо чисту розмітку без фіксованих висот
-  grid.innerHTML = `
-    <div class="chart-wrapper" style="display: flex; flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
+  analyticsContainer.classList.remove('hidden');
+
+  // 1. Налаштовуємо ідеальну сітку на 2 колонки САМЕ ДЛЯ АНАЛІТИКИ
+  analyticsContainer.style.display = 'grid';
+  analyticsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
+  analyticsContainer.style.gap = '24px';
+  analyticsContainer.style.alignItems = 'stretch';
+
+  // 2. Вставляємо розмітку в analyticsContainer
+  analyticsContainer.innerHTML = `
+    <div class="chart-wrapper" style="display: flex; margin-top:20px;  flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
       
       <div style="position: relative; flex-grow: 1; min-height: 260px; width: 100%; display: flex; align-items: center; justify-content: center;">
@@ -167,11 +184,11 @@ function showAnalytics() {
       </div>
     </div>
 
-    <div class="chart-wrapper" style="display: flex; flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
+    <div class="chart-wrapper" style="display: flex; margin-top:20px; flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
       <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:20px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
       
-      <div id="aiInsightsContent" style="flex-grow: 1; display: flex; flex-direction: column;">
+      <div id="aiInsightsContent" style="flex-grow: 1;  display: flex; flex-direction: column;">
         <div style="color: var(--muted); text-align: center; margin: auto;">Click the button to analyze your pipeline using AI.</div>
       </div>
     </div>
