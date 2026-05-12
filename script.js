@@ -24,7 +24,8 @@ function persistClientsToLocalStorage(list) {
 
 // Єдина точка правди: оновлює глобальний clients, зберігає в localStorage і перерендерить UI.
 function updateAppState(newClients) {
-  const safe = Array.isArray(newClients) ? newClients : [];
+  // ДОДАНО: [...newClients] робить копію, щоб не знищити масив-джерело
+  const safe = Array.isArray(newClients) ? [...newClients] : [];
 
   // mutate in place to keep references used across the file
   clients.length = 0;
@@ -39,6 +40,7 @@ function updateAppState(newClients) {
     renderClients(filtered);
   }
 }
+
 
 
 const clientsGrid = document.getElementById("clientsGrid");
