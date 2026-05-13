@@ -7,7 +7,7 @@
 
 A modern, responsive Customer Relationship Management (CRM) dashboard built to manage leads, track sales pipelines, and generate AI-powered insights. 
 
-**[🔗 View Live Demo]([https://crm-dashboard-eight-kappa.vercel.app](https://nickson4k-svg.github.io/crm-dashboard/))** *(Replace with your GitHub Pages link if frontend is hosted there)*
+**[🔗 View Live Demo](https://nickson4k-svg.github.io/crm-dashboard/)** *(Replace with your GitHub Pages link if frontend is hosted there)*
 
 ## 🚀 About The Project
 
