@@ -25,13 +25,14 @@ A modern, responsive Customer Relationship Management dashboard built to manage 
 
 The frontend focuses on complex DOM manipulation without relying on heavy frameworks, while the backend utilizes Node.js serverless functions to securely communicate with external AI APIs.
 
-### ✨ Key Features
-* **🤖 AI Sales Forecasting:** Integrated OpenRouter API via a secure Node.js microservice to analyze the current sales pipeline and generate smart revenue forecasts.
-* **📈 Interactive Data Visualization:** Dynamic, responsive charts built with `Chart.js` for pipeline analysis.
-* **👥 Lead Management (CRUD):** Add, edit, delete, and change the status of clients in real-time.
-* **💾 State Management:** Custom state management utilizing `localStorage` for persistent data across sessions.
-* **🎨 Modern UI/UX:** Responsive layout utilizing CSS Grid and Flexbox, featuring a sleek dark mode interface, modal windows, and smooth transitions.
-* **🔒 Secure Architecture:** Backend deployed on Vercel as a Serverless Function to hide API keys and handle CORS configurations safely.
+### <img src="https://api.iconify.design/lucide/sparkles.svg?color=white" width="22" align="text-bottom"> Key Features
+
+* <img src="https://api.iconify.design/lucide/bot.svg?color=%237C4DFF" width="20" align="text-bottom"> **AI Sales Forecasting:** Integrated OpenRouter API via a secure Node.js microservice to analyze the current sales pipeline and generate smart revenue forecasts.
+* <img src="https://api.iconify.design/lucide/bar-chart-3.svg?color=%237C4DFF" width="20" align="text-bottom"> **Interactive Data Visualization:** Dynamic, responsive charts built with `Chart.js` for pipeline analysis.
+* <img src="https://api.iconify.design/lucide/users.svg?color=%237C4DFF" width="20" align="text-bottom"> **Lead Management (CRUD):** Add, edit, delete, and change the status of clients in real-time.
+* <img src="https://api.iconify.design/lucide/database.svg?color=%237C4DFF" width="20" align="text-bottom"> **State Management:** Custom state management utilizing `localStorage` for persistent data across sessions.
+* <img src="https://api.iconify.design/lucide/layout-dashboard.svg?color=%237C4DFF" width="20" align="text-bottom"> **Modern UI/UX:** Responsive layout utilizing CSS Grid and Flexbox, featuring a sleek dark mode interface, modal windows, and smooth transitions.
+* <img src="https://api.iconify.design/lucide/shield-check.svg?color=%237C4DFF" width="20" align="text-bottom"> **Secure Architecture:** Backend deployed on Vercel as a Serverless Function to hide API keys and handle CORS configurations safely.
 
 ## 🛠️ Tech Stack
 
