@@ -1,3 +1,5 @@
+<a id="readme-top"></a>
+
 <div align="center">
 
 # <img src="https://api.iconify.design/lucide/layout-dashboard.svg?color=%237C4DFF" width="32" align="text-bottom"> B2B CRM Dashboard with AI Analytics
@@ -6,6 +8,8 @@
 ![Vanilla JS](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)
 ![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?logo=nodedotjs&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)
+![GitHub last commit](https://img.shields.io/github/last-commit/nickson4k-svg/crm-dashboard?color=%237C4DFF)
+![GitHub repo size](https://img.shields.io/github/repo-size/nickson4k-svg/crm-dashboard?color=%237C4DFF)
 
 A modern, responsive Customer Relationship Management dashboard built to manage leads, track sales pipelines, and generate AI-powered insights. 
 
@@ -42,12 +46,13 @@ The frontend focuses on complex DOM manipulation without relying on heavy framew
 | **Backend Services** | Node.js & Express.js, Vercel Serverless Functions |
 | **External APIs** | OpenRouter API (AI LLM integration) |
 
-<details>
-  <summary><b><img src="https://api.iconify.design/lucide/folder-tree.svg?color=%237C4DFF" width="18" align="text-bottom"> Click to expand: Core Architecture Overview</b></summary>
-  <br>
+## <img src="https://api.iconify.design/lucide/folder-tree.svg?color=%237C4DFF" width="26" align="text-bottom"> Architecture Overview
 
-  * `script.js`: Core business logic, state management, API requests, and data rendering.
-  * `ui-navi.js`: SPA routing and navigation logic, DOM class toggling (Separation of Concerns).
-  * `style.css`: Modular and responsive styling.
-  * `/api/forecast.js`: Node.js serverless function acting as a secure proxy for AI requests.
-</details>
+```text
+📦 crm-dashboard
+ ┣ 📂 api
+ ┃ ┗ 📜 forecast.js      # Serverless function proxy (Vercel)
+ ┣ 📜 index.html         # Semantic HTML entry point
+ ┣ 📜 script.js          # Core business logic, API calls & State Management
+ ┣ 📜 ui-navi.js         # SPA routing & UI manipulation
+ ┗ 📜 style.css          # CSS Variables, Grid/Flexbox layouts
