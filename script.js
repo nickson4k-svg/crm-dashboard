@@ -83,6 +83,7 @@ function escapeText(str) {
 }
 
 function normalize(text) {
+
   return String(text ?? "")
     .trim()
     .toLowerCase();
@@ -448,12 +449,10 @@ addClientForm?.addEventListener("submit", (e) => {
 
   closeModal();
 
-  const filtered = getFilteredClients();
-  animateGridRefresh();
-  renderClients(filtered);
 });
 
 confirmDeleteBtn?.addEventListener("click", () => {
+
   if (modalOverlay?.dataset.modalMode !== "delete") return;
 
   clearDeleteError();
@@ -476,9 +475,6 @@ confirmDeleteBtn?.addEventListener("click", () => {
   closeModal();
 
 
-  const filtered = getFilteredClients();
-  animateGridRefresh();
-  renderClients(filtered);
 });
 
 function closeProfileMenu() {
@@ -498,9 +494,11 @@ function wireProfileMenuActions() {
   profileMenu?.querySelectorAll(".menu-item").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn && btn.id === "deleteUserBtn") {
-        openDeleteUserConfirm(NaN);
+        showToast('Видалення не налаштоване');
+        closeProfileMenu();
         return;
       }
+
       closeProfileMenu();
     });
   });
@@ -796,17 +794,22 @@ window.renderAnalyticsChart = function () {
         const insightText = String(aiResult?.insight ?? "");
         const expectedRevenue = Number(aiResult?.expectedTotal);
 
+
         const safeExpected = Number.isFinite(expectedRevenue) ? expectedRevenue : actualTotal * 1.2;
 
         aiContent.innerHTML = `
+
           <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
-          <div style="color: var(--text); opacity: 0.95; margin-bottom: 20px; line-height: 1.5; font-size: 14px;">
-            ${insightText}
-          </div>
+          <div style="color: var(--text); opacity: 0.95; margin-bottom: 20px; line-height: 1.5; font-size: 14px;" id="aiInsightText"></div>
           <div style="position: relative; flex-grow: 1; min-height: 220px; width: 100%;">
             <canvas id="aiRevenueBarChart"></canvas>
           </div>
         `;
+
+        const aiInsightTextEl = document.getElementById('aiInsightText');
+        if (aiInsightTextEl) aiInsightTextEl.textContent = escapeText(insightText);
+
+
 
 
         if (typeof window.Chart !== "undefined") {

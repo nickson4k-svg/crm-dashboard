@@ -33,86 +33,10 @@ function getAnalyticsColors() {
   };
 }
 
-function renderAnalyticsChart() {
-  const canvas = document.getElementById('analyticsChart');
-  if (!canvas) return;
-  if (typeof window.Chart === 'undefined') return;
 
-  const colors = getAnalyticsColors();
-  const data = window.CRMAdminClients || [];
-
-  const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
-  const totalByStatus = statuses.map((st) => {
-    return data.reduce((sum, c) => {
-      if (c?.status !== st) return sum;
-      const v = Number(c?.totalValue);
-      return sum + (Number.isFinite(v) ? v : 0);
-    }, 0);
-  });
-
-  // Prevent hover glitches / stale tooltips.
-  if (canvas.__analyticsChartInstance && typeof canvas.__analyticsChartInstance.destroy === 'function') {
-    canvas.__analyticsChartInstance.destroy();
-    canvas.__analyticsChartInstance = null;
-  }
-
-  const backgroundColors = statuses.map((st) => colors[st]);
-
-  const chart = new window.Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels: statuses,
-      datasets: [
-        {
-          label: 'Pipeline by status',
-          data: totalByStatus,
-          backgroundColor: backgroundColors,
-          borderColor: backgroundColors,
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            boxWidth: 14,
-            boxHeight: 14,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed;
-              const value = Number(v);
-              const formatted = Number.isFinite(value)
-                ? value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-                : '$0';
-              const label = ctx.label ? `${ctx.label}: ` : '';
-              return `${label}${formatted}`;
-            },
-          },
-        },
-      },
-      cutout: '62%',
-    },
-  });
-
-  canvas.__analyticsChartInstance = chart;
-}
-
-function showInvoices() {
-  setActiveNav('invoices');
-  renderClientsHeaderLike(
-    'Рахунки',
-    'Демо-екран. Дані рахунків ще не під’єднані — це UI-заглушка.'
-  );
-}
 
 function hideAllSections() {
+
 
   // Only hide by CSS class to avoid layout “shifts”.
   const ids = ['clientsGrid', 'invoicesSection', 'analyticsSection'];

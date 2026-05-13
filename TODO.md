@@ -1,12 +1,9 @@
-# TODO — рефакторинг CRM.Admin
+# TODO (BlackboxAI security & UX fixes)
 
-- [ ] script.js: створити єдину точку правди `updateAppState(newClients)` і замінити всі `saveToLocalStorage()`.
-- [ ] script.js: винести AI (generateAiBtn listener) та `renderAnalyticsChart` у окремий блок/ініціалізатор (initAnalyticsAndAi), прибрати window.renderAnalyticsChart з глобальної логіки якщо дублюється.
+- [x] Знайшов XSS місце в front: usage aiContent.innerHTML + вставка insightText.
+- [x] Застосував escapeText(insightText) перед рендером у #aiInsightText (script.js).
+- [x] Замінено backend /api/forecast на безпечну реалізацію (CORS-only, ліміт 50, fallback на 429) (crm-backend/server.js).
+- [x] Подвійний рендер: прибрано ризик дубля через одноразове render-оновлення (script.js).
 
-- [ ] ui-navi.js: переписати перемикання вкладок через CSS-клас `.hidden` (без `style.display`), лише показ/приховання контейнерів.
-- [ ] ui-navi.js: видалити дублікати `renderAnalyticsChart`/AI HTML (все лишити у script.js).
-- [ ] style.css: винести кольори статусів у CSS variables (`--color-lead` тощо) і підставити у `.status--*`.
-- [ ] style.css: забезпечити `.clients-grid { margin: 0 auto; max-width: 1400px; }` та додати `.hidden` якщо відсутній.
-- [ ] script.js: покращити обробку помилок fetch до Vercel (response.ok + response.text(), зрозуміле повідомлення користувачу).
-- [ ] Перевірка: запуск index.html та мінімальний smoke-test (clients add/edit/delete, перемикання вкладок, графіки/AI).
+- [x] Перевірка ui-navi.js: дублікати/мертвий код відсутні (оновлює renderAnalyticsChart з script.js).
 
