@@ -1,17 +1,42 @@
-# B2B CRM Dashboard 📊
+# 📊 B2B CRM Dashboard with AI Analytics
 
-A fast, responsive, and interactive CRM dashboard built entirely with **JavaScript, HTML5, and CSS3**. 
+![Project Status](https://img.shields.io/badge/Status-Completed-success)
+![Vanilla JS](https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?logo=javascript&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?logo=nodedotjs&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)
 
-🔗 **[Live Demo](https://nickson4k-svg.github.io/crm-dashboard/)**
+A modern, responsive Customer Relationship Management (CRM) dashboard built to manage leads, track sales pipelines, and generate AI-powered insights. 
 
-## 🚀 Features
-- **Dynamic Filtering & Search:** Implemented custom search logic with `Debounce` optimization to prevent UI freezing during rapid typing.
-- **Client Management:** Full CRUD (Create, Read, Update, Delete) functionality for managing client data.
-- **Data Persistence:** Uses `localStorage` to save the state, ensuring data isn't lost upon page refresh.
-- **CSV Export:** Generates and downloads client reports directly in the browser using the `Blob API`.
-- **UI / UX:** Features a modern, dark-themed interface with pseudo-3D hover effects (CSS 3D transforms + JS mouse tracking).
+**[🔗 View Live Demo](https://crm-dashboard-eight-kappa.vercel.app)** *(Replace with your GitHub Pages link if frontend is hosted there)*
+
+## 🚀 About The Project
+
+This project demonstrates a full-stack approach to building a Single Page Application (SPA). The frontend is built entirely with Vanilla JavaScript, focusing on clean architecture, state management, and complex DOM manipulation without relying on heavy frameworks. The backend utilizes Node.js serverless functions to securely communicate with external AI APIs.
+
+### ✨ Key Features
+* **AI Sales Forecasting:** Integrated OpenRouter API via a secure Node.js microservice to analyze the current sales pipeline and generate smart revenue forecasts.
+* **Interactive Data Visualization:** Dynamic, responsive charts built with `Chart.js` for pipeline analysis.
+* **Lead Management (CRUD):** Add, edit, delete, and change the status of clients in real-time.
+* **State Management:** Custom state management utilizing `localStorage` for persistent data across sessions.
+* **Modern UI/UX:** Responsive layout utilizing CSS Grid and Flexbox, featuring a sleek dark mode interface, modal windows, and smooth transitions.
+* **Secure Architecture:** Backend deployed on Vercel as a Serverless Function to hide API keys and handle CORS configurations safely.
 
 ## 🛠️ Tech Stack
-- **Frontend:** HTML5, CSS3 (CSS Variables, Flexbox, Grid)
-- **Logic:** ES6+ Vanilla JavaScript
-- **Icons:** FontAwesome
+
+**Frontend:**
+* HTML5 & Semantic markup
+* CSS3 (Custom properties, Grid, Flexbox, Animations)
+* Vanilla JavaScript (ES6+, Async/Await, Fetch API)
+* Chart.js (Data visualization)
+
+**Backend & Integration:**
+* Node.js & Express.js
+* Vercel Serverless Functions
+* OpenRouter API (AI LLM integration)
+
+## 📂 Project Architecture
+* `script.js`: Core business logic, state management, API requests, and data rendering.
+* `ui-navi.js`: SPA routing and navigation logic, DOM class toggling (Separation of Concerns).
+* `style.css`: Modular and responsive styling.
+* `/api/forecast.js`: Node.js serverless function acting as a secure proxy for AI requests.
+
