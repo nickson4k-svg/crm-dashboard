@@ -23,16 +23,12 @@ This project demonstrates a full-stack approach to building a Single Page Applic
 
 ## 🛠️ Tech Stack
 
-**Frontend:**
-* HTML5 & Semantic markup
-* CSS3 (Custom properties, Grid, Flexbox, Animations)
-* Vanilla JavaScript (ES6+, Async/Await, Fetch API)
-* Chart.js (Data visualization)
-
-**Backend & Integration:**
-* Node.js & Express.js
-* Vercel Serverless Functions
-* OpenRouter API (AI LLM integration)
+| Category | Technologies Used |
+| :--- | :--- |
+| **Frontend** | HTML5, CSS3 (Grid/Flexbox/Vars), Vanilla JS (ES6+) |
+| **Data Viz** | Chart.js |
+| **Backend** | Node.js, Express.js, Vercel Serverless Functions |
+| **AI API** | OpenRouter API (LLM Integration) |
 
 ## 📂 Project Architecture
 * `script.js`: Core business logic, state management, API requests, and data rendering.
