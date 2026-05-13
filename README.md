@@ -13,7 +13,7 @@ A modern, responsive Customer Relationship Management dashboard built to manage 
 
 <br />
 
-*(Тут закинеш скріншот, наприклад: `<img src="docs/preview.png" width="800">`)*
+
 
 </div>
 
