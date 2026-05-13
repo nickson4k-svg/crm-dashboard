@@ -782,7 +782,7 @@ window.renderAnalyticsChart = function () {
           .filter(c => c.status === "Won") 
           .reduce((sum, c) => sum + (Number(c.value) || 0), 0);
 
-        const response = await fetch("https://crm-dashboard-nickson4ks-projects.vercel.app/api/forecast", {
+        const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
