@@ -62,10 +62,12 @@ app.post('/api/forecast', async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server listening on port ${process.env.PORT || 3000}`);
-});
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(process.env.PORT || 3001, () => {
+    console.log(`Server listening on port ${process.env.PORT || 3001}`);
+  });
+}
+
 
 module.exports = app;
-
