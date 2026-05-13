@@ -8,5 +8,4 @@
 - [ ] style.css: винести кольори статусів у CSS variables (`--color-lead` тощо) і підставити у `.status--*`.
 - [ ] style.css: забезпечити `.clients-grid { margin: 0 auto; max-width: 1400px; }` та додати `.hidden` якщо відсутній.
 - [ ] script.js: покращити обробку помилок fetch до Vercel (response.ok + response.text(), зрозуміле повідомлення користувачу).
-- [ ] Перевірка: запуск index.html та мінімальний smoke-test (clients add/edit/delete, перемикання вкладок, графіки/AI).
-
+- [ ] Перевірка: запуск index.html та мінімальний smoke-test (clients add/edit/delete, переми
