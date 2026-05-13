@@ -779,7 +779,7 @@ window.renderAnalyticsChart = function () {
       try {
         const actualTotal = clients.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
 
-        const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
+        const response = await fetch("https://crm-dashboard-git-main-nickson4ks-projects.vercel.app/api/forecast", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
