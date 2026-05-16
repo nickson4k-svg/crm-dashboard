@@ -757,7 +757,7 @@ window.renderAnalyticsChart = function () {
         // 1. Рахуємо суму ТІЛЬКИ для "Won" клієнтів і використовуємо c.value
         const actualTotal = clients
           .filter(c => c.status === "Won") 
-          .reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+          .reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
 
         const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
               method: "POST",
