@@ -433,20 +433,7 @@ nav li.active::before{
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap:16px;
   padding: 6px 0 0;
-  
-  /* FIX: prevent the grid/cards from stretching uncontrollably (e.g. after Chart.js render) */
-  width: 100%;
-  max-width: 1400px;
-  /* МАГІЧНИЙ РЯДОК: центрує весь блок сітки по горизонталі */
-  margin-left: auto;
-  margin-right: auto;
-
-  /* Додатково центруємо самі картки всередині сітки, якщо їх мало */
-  justify-content: center;
-  box-sizing: border-box;
 }
-
-
 
 .grid-anim .client-card{
   animation: cardPulse .16s ease both;
@@ -736,14 +723,9 @@ nav li.active::before{
 }
 
 /* Responsive */
-.hidden {
-  display: none !important;
-}
-
 [hidden] {
   display: none !important;
 }
-
 
 @media (max-width: 920px){
   .sidebar{ width: 86px; padding: 18px 10px; }

@@ -12,36 +12,15 @@ function loadClientsFromLocalStorage() {
   }
 }
 
-const clients = loadClientsFromLocalStorage() || (window.CRMAdminClients || []);
-let nextId = clients.length ? Math.max(...clients.map((c) => c.id)) + 1 : 1;
-
-function persistClientsToLocalStorage(list) {
+function saveToLocalStorage() {
   try {
-    window.localStorage?.setItem(LS_KEY, JSON.stringify(list));
+    window.localStorage?.setItem(LS_KEY, JSON.stringify(clients));
   } catch {
   }
 }
 
-// Єдина точка правди: оновлює глобальний clients, зберігає в localStorage і перерендерить UI.
-function updateAppState(newClients) {
-  // ДОДАНО: [...newClients] робить копію, щоб не знищити масив-джерело
-  const safe = Array.isArray(newClients) ? [...newClients] : [];
-
-  // mutate in place to keep references used across the file
-  clients.length = 0;
-  clients.push(...safe);
-
-  persistClientsToLocalStorage(clients);
-
-  // render with current filters/sort
-  if (typeof getFilteredClients === "function" && typeof renderClients === "function") {
-    const filtered = getFilteredClients();
-    if (typeof animateGridRefresh === "function") animateGridRefresh();
-    renderClients(filtered);
-  }
-}
-
-
+const clients = loadClientsFromLocalStorage() || (window.CRMAdminClients || []);
+let nextId = clients.length ? Math.max(...clients.map((c) => c.id)) + 1 : 1;
 
 const clientsGrid = document.getElementById("clientsGrid");
 const searchInput = document.getElementById("searchInput");
@@ -83,7 +62,6 @@ function escapeText(str) {
 }
 
 function normalize(text) {
-
   return String(text ?? "")
     .trim()
     .toLowerCase();
@@ -436,7 +414,7 @@ addClientForm?.addEventListener("submit", (e) => {
     };
   }
 
-  updateAppState(clients);
+  saveToLocalStorage();
 
   addClientForm.reset();
   clearErrors();
@@ -449,10 +427,12 @@ addClientForm?.addEventListener("submit", (e) => {
 
   closeModal();
 
+  const filtered = getFilteredClients();
+  animateGridRefresh();
+  renderClients(filtered);
 });
 
 confirmDeleteBtn?.addEventListener("click", () => {
-
   if (modalOverlay?.dataset.modalMode !== "delete") return;
 
   clearDeleteError();
@@ -470,11 +450,12 @@ confirmDeleteBtn?.addEventListener("click", () => {
     if (idx !== -1) clients.splice(idx, 1);
   }
 
-
-  updateAppState(clients);
+  saveToLocalStorage();
   closeModal();
 
-
+  const filtered = getFilteredClients();
+  animateGridRefresh();
+  renderClients(filtered);
 });
 
 function closeProfileMenu() {
@@ -494,11 +475,9 @@ function wireProfileMenuActions() {
   profileMenu?.querySelectorAll(".menu-item").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn && btn.id === "deleteUserBtn") {
-        showToast('Видалення не налаштоване');
-        closeProfileMenu();
+        openDeleteUserConfirm(NaN);
         return;
       }
-
       closeProfileMenu();
     });
   });
@@ -794,23 +773,17 @@ window.renderAnalyticsChart = function () {
         const insightText = String(aiResult?.insight ?? "");
         const expectedRevenue = Number(aiResult?.expectedTotal);
 
-
         const safeExpected = Number.isFinite(expectedRevenue) ? expectedRevenue : actualTotal * 1.2;
 
         aiContent.innerHTML = `
-
           <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
-          <div style="color: var(--text); opacity: 0.95; margin-bottom: 20px; line-height: 1.5; font-size: 14px;" id="aiInsightText"></div>
-          <div style="position: relative; flex-grow: 1; min-height: 220px; width: 100%;">
+          <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
+            ${insightText}
+          </div>
+          <div style="height: 220px;">
             <canvas id="aiRevenueBarChart"></canvas>
           </div>
         `;
-
-        const aiInsightTextEl = document.getElementById('aiInsightText');
-        if (aiInsightTextEl) aiInsightTextEl.textContent = escapeText(insightText);
-
-
-
 
         if (typeof window.Chart !== "undefined") {
           const barCanvas = document.getElementById("aiRevenueBarChart");

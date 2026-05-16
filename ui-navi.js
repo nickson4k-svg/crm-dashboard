@@ -9,7 +9,6 @@ function setActiveNav(navKey) {
   });
 }
 
-
 function renderClientsHeaderLike(title, subtitle) {
   const clientsGrid = document.getElementById('clientsGrid');
   if (!clientsGrid) return;
@@ -33,88 +32,108 @@ function getAnalyticsColors() {
   };
 }
 
+function renderAnalyticsChart() {
+  const canvas = document.getElementById('analyticsChart');
+  if (!canvas) return;
+  if (typeof window.Chart === 'undefined') return;
 
+  const colors = getAnalyticsColors();
+  const data = window.CRMAdminClients || [];
 
-function hideAllSections() {
-
-
-  // Only hide by CSS class to avoid layout “shifts”.
-  const ids = ['clientsGrid', 'invoicesSection', 'analyticsSection'];
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
+  const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
+  const totalByStatus = statuses.map((st) => {
+    return data.reduce((sum, c) => {
+      if (c?.status !== st) return sum;
+      const v = Number(c?.totalValue);
+      return sum + (Number.isFinite(v) ? v : 0);
+    }, 0);
   });
-}
 
-function showSectionById(sectionId) {
-  const el = document.getElementById(sectionId);
-  if (el) el.classList.remove('hidden');
-}
-
-
-function showClients() {
-  setActiveNav('clients');
-  hideAllSections(); // Ховаємо всі інші секції
-
-  const grid = document.getElementById('clientsGrid');
-  if (grid) {
-    // ЖОРСТКО прибираємо інлайнові стилі, які могли лишитись після аналітики/багів
-    grid.removeAttribute('style');
-    grid.classList.remove('hidden');
+  // Prevent hover glitches / stale tooltips.
+  if (canvas.__analyticsChartInstance && typeof canvas.__analyticsChartInstance.destroy === 'function') {
+    canvas.__analyticsChartInstance.destroy();
+    canvas.__analyticsChartInstance = null;
   }
 
-  // render is owned by script.js
-  if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
-    const filtered = getFilteredClients();
-    if (typeof animateGridRefresh === 'function') animateGridRefresh();
-    renderClients(filtered);
-  }
+  const backgroundColors = statuses.map((st) => colors[st]);
+
+  const chart = new window.Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: statuses,
+      datasets: [
+        {
+          label: 'Pipeline by status',
+          data: totalByStatus,
+          backgroundColor: backgroundColors,
+          borderColor: backgroundColors,
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 14,
+            boxHeight: 14,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed;
+              const value = Number(v);
+              const formatted = Number.isFinite(value)
+                ? value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+                : '$0';
+              const label = ctx.label ? `${ctx.label}: ` : '';
+              return `${label}${formatted}`;
+            },
+          },
+        },
+      },
+      cutout: '62%',
+    },
+  });
+
+  canvas.__analyticsChartInstance = chart;
 }
 
 function showInvoices() {
   setActiveNav('invoices');
-  hideAllSections();
-
-  const section = document.getElementById('invoicesSection');
-  if (section) section.classList.remove('hidden');
-
-  // keep placeholder; rendering of clients-grid stays in script.js
-  // (do not touch clientsGrid inline styles)
+  renderClientsHeaderLike(
+    'Рахунки',
+    'Демо-екран. Дані рахунків ще не під’єднані — це UI-заглушка.'
+  );
 }
 
 function showAnalytics() {
   setActiveNav('analytics');
-  hideAllSections(); // ХОВАЄМО КЛІЄНТІВ
+  const grid = document.getElementById('clientsGrid');
+  if (!grid) return;
 
-  // ЗВЕРТАЄМОСЯ ДО ПРАВИЛЬНОГО КОНТЕЙНЕРА АНАЛІТИКИ!
-  const analyticsContainer = document.getElementById('analyticsSection');
-  if (!analyticsContainer) return;
+  // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
+  // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = '1fr 1fr';
+  grid.style.gap = '20px';
 
-  analyticsContainer.classList.remove('hidden');
-
-  // 1. Налаштовуємо ідеальну сітку на 2 колонки САМЕ ДЛЯ АНАЛІТИКИ
-  analyticsContainer.style.display = 'grid';
-  analyticsContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
-  analyticsContainer.style.gap = '24px';
-  analyticsContainer.style.alignItems = 'stretch';
-
-  // 2. Вставляємо розмітку в analyticsContainer
-  analyticsContainer.innerHTML = `
-    <div class="chart-wrapper" style="display: flex; margin-top:20px;  flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
+  grid.innerHTML = `
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
-      
-      <div style="position: relative; flex-grow: 1; min-height: 260px; width: 100%; display: flex; align-items: center; justify-content: center;">
-        <canvas id="analyticsChart"></canvas>
-      </div>
+      <canvas id="analyticsChart"></canvas>
     </div>
 
-    <div class="chart-wrapper" style="display: flex; margin-top:20px; flex-direction: column; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 24px;">
-      <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
-      <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:20px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
-      
-      <div id="aiInsightsContent" style="flex-grow: 1;  display: flex; flex-direction: column;">
-        <div style="color: var(--muted); text-align: center; margin: auto;">Click the button to analyze your pipeline using AI.</div>
-      </div>
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto; overflow: hidden;">
+      <h2 style="margin-top:0; margin-bottom: 18px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
+
+      <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
+
+      <div id="aiInsightsContent">Click the button to analyze your pipeline using AI.</div>
     </div>
   `;
 
@@ -126,10 +145,17 @@ function showAnalytics() {
 }
 
 
+function showClients() {
+  setActiveNav('clients');
+  if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
+    const filtered = getFilteredClients();
+    if (typeof animateGridRefresh === 'function') animateGridRefresh();
+    renderClients(filtered);
+  }
+}
 
 
 function wireUiNavigation() {
-
   // avoid duplicate bindings
   document.querySelectorAll('.sidebar nav li[data-nav]').forEach((li) => {
     if (li.__wired) return;
