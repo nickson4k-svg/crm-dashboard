@@ -62,6 +62,7 @@ app.post('/api/forecast', async (req, res) => {
   }
 });
 
+
 app.listen(process.env.PORT || 3000, () => {
   // eslint-disable-next-line no-console
   console.log(`Server listening on port ${process.env.PORT || 3000}`);

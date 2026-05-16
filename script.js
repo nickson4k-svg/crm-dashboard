@@ -753,8 +753,11 @@ window.renderAnalyticsChart = function () {
         </style>
       `;
 
-      try {
-        const actualTotal = clients.reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
+     try {
+        // 1. Рахуємо суму ТІЛЬКИ для "Won" клієнтів і використовуємо c.value
+        const actualTotal = clients
+          .filter(c => c.status === "Won") 
+          .reduce((sum, c) => sum + (Number(c.value) || 0), 0);
 
         const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
               method: "POST",
@@ -762,9 +765,11 @@ window.renderAnalyticsChart = function () {
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                clients: clients,
+                clients // 2. JS дозволяє писати коротко: замість clients: clients
               })
             });
+            
+        // ... далі йде твій код (const data = await response.json(); і т.д.)
 
         if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
 
