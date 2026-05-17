@@ -11,6 +11,19 @@ app.use(express.json({ limit: '1mb' }));
 
 app.post('/api/forecast', async (req, res) => {
   try {
+    const internalKey = process.env.INTERNAL_API_KEY;
+    const authHeader = req.headers.authorization;
+    const providedKey = authHeader ? String(authHeader) : '';
+
+    if (!internalKey || !providedKey || providedKey !== internalKey) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const clients = req.body?.clients;
+    if (!Array.isArray(clients) || clients.length > 1000) {
+      return res.status(400).json({ error: 'Invalid clients payload' });
+    }
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -22,7 +35,8 @@ app.post('/api/forecast', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: `Ти комерційний директор. Проаналізуй масив угод. Поверни ТІЛЬКИ валідний JSON у форматі: {"insight": "твоя коротка порада українською", "expectedTotal": число} без маркдауну.`
+            content:
+              'Ти компетентний директор. Проаналізуй масив угод. Перевірни ТІЛЬКИ валідний JSON у форматі {"insight": "твоя коротка порада українською", "expectedTotal": число} без маркдаунy.'
           },
           {
             role: 'user',
@@ -48,9 +62,16 @@ app.post('/api/forecast', async (req, res) => {
 
     if (startIndex !== -1 && endIndex !== -1) {
       const cleanJsonString = String(rawAiText).substring(startIndex, endIndex + 1);
-      const aiResult = JSON.parse(cleanJsonString);
+      let aiResult;
+      try {
+        aiResult = JSON.parse(cleanJsonString);
+      } catch (parseError) {
+        console.error('❌ [AI JSON PARSE ERROR]:', parseError);
+        return res.status(500).json({ error: 'Помилка обробки відповіді від AI' });
+      }
       return res.json(aiResult);
     }
+
 
     console.error('❌ [PARSE ERROR]: ШІ не повернув JSON', rawAiText);
     return res
@@ -61,7 +82,6 @@ app.post('/api/forecast', async (req, res) => {
     res.status(500).json({ error: 'Внутрішня помилка сервера' });
   }
 });
-
 
 app.listen(process.env.PORT || 3000, () => {
   // eslint-disable-next-line no-console

@@ -389,6 +389,7 @@ addClientForm?.addEventListener("submit", (e) => {
   const totalValue = Number(clientTotalValueInput.value);
 
   if (mode === "add") {
+
     const newClient = {
       id: nextId++,
       contactName,
@@ -416,7 +417,24 @@ addClientForm?.addEventListener("submit", (e) => {
 
   saveToLocalStorage();
 
+  // Warning: if client set to Lost and has unpaid invoices
+  try {
+    if (status === "Lost" && window.CRMAdminInvoices) {
+      const invs = window.CRMAdminInvoices || [];
+      const hasUnpaid = invs.some((inv) => Number(inv.clientId) === Number(editId ?? modalOverlay?.dataset.editTargetId) && inv.status !== "Paid" && inv.status !== "Cancelled");
+      // Note: editId is only available in edit branch; fallback to current editTargetId.
+      const currentClientId = mode === "edit" ? editId : null;
+      const clientIdToCheck = Number.isFinite(Number(currentClientId)) ? currentClientId : Number(modalOverlay?.dataset.editTargetId);
+      if (hasUnpaid || invs.some((inv) => Number(inv.clientId) === clientIdToCheck && inv.status === "Sent")) {
+        window.showToast?.("Попередження: у клієнта є неоплачені рахунки.");
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   addClientForm.reset();
+
   clearErrors();
   clearDeleteError();
 
@@ -439,7 +457,7 @@ confirmDeleteBtn?.addEventListener("click", () => {
 
   const v = (deleteUserInput?.value || "").trim();
   if (v.toLowerCase() !== "delete") {
-    if (deleteUserError) deleteUserError.textContent = 'Протрібно написати "delete" для підтвердження.';
+    if (deleteUserError) deleteUserError.textContent = 'Потрібно написати "delete" для підтвердження.';
     if (deleteUserInput) deleteUserInput.classList.add("field-invalid");
     return;
   }
@@ -593,15 +611,7 @@ function showToast(message) {
   }, 2500);
 }
 
-document.querySelectorAll(".sidebar nav li[data-nav]").forEach((li) => {
-  const key = li.getAttribute("data-nav");
-  if (key === "clients" || key === "analytics") return;
 
-  li.addEventListener("click", (e) => {
-    e.preventDefault();
-    showToast("Модуль у розробці (In development)");
-  });
-});
 
 clientsGrid?.addEventListener("mousemove", (e) => {
   const card = e.target.closest(".client-card");

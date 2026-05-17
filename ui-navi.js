@@ -9,9 +9,34 @@ function setActiveNav(navKey) {
   });
 }
 
+// Reset shared container (clientsGrid) before switching modules.
+function resetClientsGrid() {
+  const grid = document.getElementById('clientsGrid');
+  if (!grid) return;
+
+  grid.removeAttribute('style');
+  grid.className = 'clients-grid';
+}
+
+function hideAllModules() {
+  const clientsGrid = document.getElementById('clientsGrid');
+  const invoicesSection = document.getElementById('invoicesSection');
+
+  if (clientsGrid) {
+    clientsGrid.hidden = true;
+    clientsGrid.innerHTML = '';
+  }
+
+  if (invoicesSection) {
+    invoicesSection.hidden = true;
+  }
+}
+
+
 function renderClientsHeaderLike(title, subtitle) {
   const clientsGrid = document.getElementById('clientsGrid');
   if (!clientsGrid) return;
+
 
   clientsGrid.innerHTML = `
     <div class="empty-state">
@@ -104,17 +129,34 @@ function renderAnalyticsChart() {
 }
 
 function showInvoices() {
+  console.log('→ showInvoices');
+  hideAllModules();
   setActiveNav('invoices');
-  renderClientsHeaderLike(
-    'Рахунки',
-    'Демо-екран. Дані рахунків ще не під’єднані — це UI-заглушка.'
-  );
+
+  const invoicesSection = document.getElementById('invoicesSection');
+
+  if (invoicesSection) invoicesSection.hidden = false;
+
+
+  if (typeof window.checkOverdueInvoices === 'function') {
+    window.checkOverdueInvoices();
+  }
+
+  if (typeof window.renderInvoices === 'function') {
+    window.renderInvoices();
+  }
 }
 
+
 function showAnalytics() {
+  hideAllModules();
   setActiveNav('analytics');
+  resetClientsGrid();
   const grid = document.getElementById('clientsGrid');
   if (!grid) return;
+  grid.hidden = false;
+
+
 
   // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
   // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
@@ -123,12 +165,12 @@ function showAnalytics() {
   grid.style.gap = '20px';
 
   grid.innerHTML = `
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px;  border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
       <canvas id="analyticsChart"></canvas>
     </div>
 
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; background: var(--panel2); border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto; overflow: hidden;">
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px;  border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto; overflow: hidden;">
       <h2 style="margin-top:0; margin-bottom: 18px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
 
       <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
@@ -146,7 +188,13 @@ function showAnalytics() {
 
 
 function showClients() {
+  hideAllModules();
   setActiveNav('clients');
+  resetClientsGrid();
+
+  const clientsGrid = document.getElementById('clientsGrid');
+  if (clientsGrid) clientsGrid.hidden = false;
+
   if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
     const filtered = getFilteredClients();
     if (typeof animateGridRefresh === 'function') animateGridRefresh();
@@ -155,20 +203,23 @@ function showClients() {
 }
 
 
-function wireUiNavigation() {
-  // avoid duplicate bindings
-  document.querySelectorAll('.sidebar nav li[data-nav]').forEach((li) => {
-    if (li.__wired) return;
-    li.__wired = true;
 
+function wireUiNavigation() {
+  document.querySelectorAll('.sidebar nav li[data-nav]').forEach((li) => {
     li.addEventListener('click', () => {
       const key = li.getAttribute('data-nav');
-      if (key === 'clients') return showClients();
-      if (key === 'invoices') return showInvoices();
-      if (key === 'analytics') return showAnalytics();
+      try {
+        if (key === 'clients') return showClients();
+        if (key === 'invoices') return showInvoices();
+        if (key === 'analytics') return showAnalytics();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Navigation error:', err);
+      }
     });
   });
 }
+
 
 
 window.CRMAdminNav = {
