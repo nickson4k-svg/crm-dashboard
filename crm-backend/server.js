@@ -11,20 +11,13 @@ app.use(express.json({ limit: '1mb' }));
 
 app.post('/api/forecast', async (req, res) => {
   try {
-    const internalKey = process.env.INTERNAL_API_KEY;
-    const authHeader = req.headers.authorization;
-    const providedKey = authHeader ? String(authHeader) : '';
-
-    if (!internalKey || !providedKey || providedKey !== internalKey) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const clients = req.body?.clients;
     if (!Array.isArray(clients) || clients.length > 1000) {
       return res.status(400).json({ error: 'Invalid clients payload' });
     }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
