@@ -769,16 +769,21 @@ window.renderAnalyticsChart = function () {
           .filter(c => c.status === "Won") 
           .reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
 
-       const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer my-super-secret-123" 
-      },
-      body: JSON.stringify({
-        clients
-      })
-    });
+    // Просто робимо запит без жодних ключів і паролів
+const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    clients
+  })
+});
+
+// Якщо була помилка мережі або сервера
+if (!response.ok) {
+  throw new Error(`AI request failed: ${response.status}`);
+}
             
         
 
