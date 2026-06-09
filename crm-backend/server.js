@@ -24,7 +24,7 @@ app.post('/api/forecast', async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         messages: [
           {
             role: 'system',
