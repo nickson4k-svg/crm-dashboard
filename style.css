@@ -2157,15 +2157,26 @@ nav li.active::before {
 }
 
 @keyframes checkmark-pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Fix for light mode */
 body.theme-light .client-checkbox {
   background-color: #f1f5f9;
-  border: 2px solid #475569 !important; /* Very dark slate for strong contrast */
+  border: 2px solid #475569 !important;
+  /* Very dark slate for strong contrast */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
 }
 
@@ -2186,23 +2197,58 @@ body.theme-light .client-checkbox:hover {
    LIGHT THEME CONTRAST FIXES
    ============================================================== */
 
-body.theme-light .status--lead { color: #6D28D9; border-color: rgba(109, 40, 217, 0.35); }
-body.theme-light .status--lead::before { background: #6D28D9; }
+body.theme-light .status--lead {
+  color: #6D28D9;
+  border-color: rgba(109, 40, 217, 0.35);
+}
 
-body.theme-light .status--nurturing { color: #D97706; border-color: rgba(217, 119, 6, 0.35); }
-body.theme-light .status--nurturing::before { background: #D97706; }
+body.theme-light .status--lead::before {
+  background: #6D28D9;
+}
 
-body.theme-light .status--demo { color: #2563EB; border-color: rgba(37, 99, 235, 0.35); }
-body.theme-light .status--demo::before { background: #2563EB; }
+body.theme-light .status--nurturing {
+  color: #D97706;
+  border-color: rgba(217, 119, 6, 0.35);
+}
 
-body.theme-light .status--won { color: #16A34A; border-color: rgba(22, 163, 74, 0.35); }
-body.theme-light .status--won::before { background: #16A34A; }
+body.theme-light .status--nurturing::before {
+  background: #D97706;
+}
 
-body.theme-light .status--lost { color: #DC2626; border-color: rgba(220, 38, 38, 0.35); }
-body.theme-light .status--lost::before { background: #DC2626; }
+body.theme-light .status--demo {
+  color: #2563EB;
+  border-color: rgba(37, 99, 235, 0.35);
+}
 
-body.theme-light .stat-card__value[data-trend="up"] { color: #16A34A; }
-body.theme-light .stat-card__value[data-trend="down"] { color: #DC2626; }
+body.theme-light .status--demo::before {
+  background: #2563EB;
+}
+
+body.theme-light .status--won {
+  color: #16A34A;
+  border-color: rgba(22, 163, 74, 0.35);
+}
+
+body.theme-light .status--won::before {
+  background: #16A34A;
+}
+
+body.theme-light .status--lost {
+  color: #DC2626;
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+body.theme-light .status--lost::before {
+  background: #DC2626;
+}
+
+body.theme-light .stat-card__value[data-trend="up"] {
+  color: #16A34A;
+}
+
+body.theme-light .stat-card__value[data-trend="down"] {
+  color: #DC2626;
+}
 
 /* ==============================================================
    TOAST NOTIFICATIONS
@@ -2243,8 +2289,14 @@ body.theme-light .stat-card__value[data-trend="down"] { color: #DC2626; }
 .toast-icon {
   font-size: 20px;
 }
-.toast-success .toast-icon { color: #22C55E; }
-.toast-error .toast-icon { color: #EF4444; }
+
+.toast-success .toast-icon {
+  color: #22C55E;
+}
+
+.toast-error .toast-icon {
+  color: #EF4444;
+}
 
 .toast-message {
   flex-grow: 1;
@@ -2289,10 +2341,22 @@ body.theme-light .stat-card__value[data-trend="down"] { color: #DC2626; }
   min-height: 100px;
 }
 
-body:not(.theme-light) .ql-snow .ql-stroke { stroke: var(--text); }
-body:not(.theme-light) .ql-snow .ql-fill { fill: var(--text); }
-body:not(.theme-light) .ql-snow .ql-picker { color: var(--text); }
-body:not(.theme-light) .ql-snow .ql-picker-options { background: var(--el-bg-2); border-color: var(--el-border); }
+body:not(.theme-light) .ql-snow .ql-stroke {
+  stroke: var(--text);
+}
+
+body:not(.theme-light) .ql-snow .ql-fill {
+  fill: var(--text);
+}
+
+body:not(.theme-light) .ql-snow .ql-picker {
+  color: var(--text);
+}
+
+body:not(.theme-light) .ql-snow .ql-picker-options {
+  background: var(--el-bg-2);
+  border-color: var(--el-border);
+}
 
 /* ==============================================================
    TASKS MODULE
@@ -2301,8 +2365,14 @@ body:not(.theme-light) .ql-snow .ql-picker-options { background: var(--el-bg-2);
   border-left: 4px solid var(--accent);
   padding: 16px;
 }
-.task-card.priority-high { border-left-color: #EF4444; }
-.task-card.priority-medium { border-left-color: #F59E0B; }
+
+.task-card.priority-high {
+  border-left-color: #EF4444;
+}
+
+.task-card.priority-medium {
+  border-left-color: #F59E0B;
+}
 
 .task-action-btn {
   width: 100%;
@@ -2311,4 +2381,7 @@ body:not(.theme-light) .ql-snow .ql-picker-options { background: var(--el-bg-2);
   color: var(--accent);
   border: 1px solid rgba(0, 123, 255, 0.2);
 }
-.task-action-btn:hover { background: rgba(0, 123, 255, 0.2); }
+
+.task-action-btn:hover {
+  background: rgba(0, 123, 255, 0.2);
+}

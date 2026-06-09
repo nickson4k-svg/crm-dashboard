@@ -169,7 +169,7 @@ export function renderAnalyticsChart() {
           .filter(c => c.status === "Won") 
           .reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
 
-        const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
+        const response = await fetch("/api/forecast", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
