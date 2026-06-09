@@ -1,5 +1,5 @@
 import { initNavigation } from './ui-navi.js';
-import { initChatbot } from './chatbot.js';
+import { initChatbot } from './chatbot.js?v=2';
 
 // Initialize the application once the module loads
 initNavigation();
