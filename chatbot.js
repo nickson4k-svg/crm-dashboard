@@ -62,7 +62,7 @@ export function initChatbot() {
       // Determine base URL dynamically based on environment
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const baseUrl = isLocalhost ? 'http://localhost:3000' : 'https://crm-dashboard-eight-kappa.vercel.app';
-      const apiUrl = `${baseUrl}/api/chat`;
+      const apiUrl = `${baseUrl}/api/assistant`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',

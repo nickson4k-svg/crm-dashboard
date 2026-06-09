@@ -76,7 +76,7 @@ app.post('/api/forecast', async (req, res) => {
   }
 });
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/assistant', async (req, res) => {
   try {
     const clients = req.body?.clients;
     const userMessage = req.body?.message;
