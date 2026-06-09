@@ -36,6 +36,35 @@ export function initChatbot() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
+  async function typeMessage(sender, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    msgDiv.appendChild(bubble);
+    messagesContainer.appendChild(msgDiv);
+    
+    // Disable input while typing
+    input.disabled = true;
+    const sendBtn = form.querySelector('.chatbot-send-btn');
+    if (sendBtn) sendBtn.disabled = true;
+
+    for (let i = 0; i < text.length; i++) {
+      bubble.textContent += text.charAt(i);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      // Faster typing for spaces, slightly slower for punctuation
+      let delay = 15;
+      const char = text.charAt(i);
+      if (char === '.' || char === '!' || char === '?') delay = 150;
+      else if (char === ',') delay = 50;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    input.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
+    input.focus();
+  }
+
   function showTypingIndicator() {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'chat-message bot typing-indicator-wrapper';
@@ -82,7 +111,7 @@ export function initChatbot() {
       }
 
       const data = await response.json();
-      appendMessage('bot', data.reply || 'Вибачте, сталася помилка під час обробки вашого запиту.');
+      await typeMessage('bot', data.reply || 'Вибачте, сталася помилка під час обробки вашого запиту.');
 
     } catch (error) {
       console.error('Chatbot API error:', error);
