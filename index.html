@@ -239,6 +239,33 @@
 
 
 
+    <!-- Chatbot Widget -->
+    <div id="chatbotWidget" class="chatbot-widget" aria-hidden="true" hidden>
+        <div class="chatbot-header">
+            <div class="chatbot-title">
+                <i class="fa-solid fa-robot"></i> CRM Assistant
+            </div>
+            <button id="closeChatbotBtn" class="chatbot-close-btn" aria-label="Close chat">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="chatbotMessages" class="chatbot-messages" aria-live="polite">
+            <div class="chat-message bot">
+                <div class="chat-bubble">Привіт! Я ваш ШІ-асистент. Запитайте мене щось про ваших клієнтів або угоди!</div>
+            </div>
+        </div>
+        <form id="chatbotForm" class="chatbot-input-area">
+            <input type="text" id="chatbotInput" placeholder="Ваше запитання..." autocomplete="off" required>
+            <button type="submit" class="chatbot-send-btn" aria-label="Send message">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+    
+    <button id="openChatbotBtn" class="chatbot-fab" aria-label="Open AI Assistant">
+        <i class="fa-solid fa-message"></i>
+    </button>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"
         referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

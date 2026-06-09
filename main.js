@@ -1,7 +1,9 @@
 import { initNavigation } from './ui-navi.js';
+import { initChatbot } from './chatbot.js';
 
 // Initialize the application once the module loads
 initNavigation();
+initChatbot();
 
 // Global Toast System
 window.showToast = function(message, type = 'success') {
