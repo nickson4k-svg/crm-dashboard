@@ -1,4 +1,4 @@
-import { getClients } from './store.js';
+import { getClients } from './store.js'; // force vercel redeploy
 
 function escapeText(str) {
   if (typeof window.escapeText === 'function') return window.escapeText(str);

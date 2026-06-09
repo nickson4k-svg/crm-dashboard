@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'openrouter/free',
+        model: 'openrouter/owl-alpha',
         messages: [
           {
             role: 'system',
