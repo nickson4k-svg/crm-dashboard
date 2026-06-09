@@ -1,4 +1,8 @@
 // CRM.Admin — UI navigation (clients/invoices/analytics) — UI-only
+import { renderAnalyticsChart } from './analytics.js';
+import { renderInvoices, checkOverdueInvoices } from './invoices.js';
+import { renderClients, getFilteredClients, animateGridRefresh } from './clientsView.js';
+import { renderTasks } from './tasksView.js';
 
 function setActiveNav(navKey) {
   const navItems = document.querySelectorAll('.sidebar nav li[data-nav]');
@@ -21,6 +25,8 @@ function resetClientsGrid() {
 function hideAllModules() {
   const clientsGrid = document.getElementById('clientsGrid');
   const invoicesSection = document.getElementById('invoicesSection');
+  const clientsHeader = document.getElementById('clientsHeader');
+  const clientsSummaryStats = document.getElementById('clientsSummaryStats');
 
   if (clientsGrid) {
     clientsGrid.hidden = true;
@@ -30,6 +36,9 @@ function hideAllModules() {
   if (invoicesSection) {
     invoicesSection.hidden = true;
   }
+  
+  if (clientsHeader) clientsHeader.hidden = true;
+  if (clientsSummaryStats) clientsSummaryStats.hidden = true;
 }
 
 
@@ -46,87 +55,7 @@ function renderClientsHeaderLike(title, subtitle) {
   `;
 }
 
-function getAnalyticsColors() {
-  // Matches required CSS-agnostic hex palette.
-  return {
-    Lead: '#7C4DFF',
-    Nurturing: '#F59E0B',
-    Demo: '#3B82F6',
-    Won: '#22C55E',
-    Lost: '#EF4444',
-  };
-}
 
-function renderAnalyticsChart() {
-  const canvas = document.getElementById('analyticsChart');
-  if (!canvas) return;
-  if (typeof window.Chart === 'undefined') return;
-
-  const colors = getAnalyticsColors();
-  const data = window.CRMAdminClients || [];
-
-  const statuses = ['Lead', 'Nurturing', 'Demo', 'Won', 'Lost'];
-  const totalByStatus = statuses.map((st) => {
-    return data.reduce((sum, c) => {
-      if (c?.status !== st) return sum;
-      const v = Number(c?.totalValue);
-      return sum + (Number.isFinite(v) ? v : 0);
-    }, 0);
-  });
-
-  // Prevent hover glitches / stale tooltips.
-  if (canvas.__analyticsChartInstance && typeof canvas.__analyticsChartInstance.destroy === 'function') {
-    canvas.__analyticsChartInstance.destroy();
-    canvas.__analyticsChartInstance = null;
-  }
-
-  const backgroundColors = statuses.map((st) => colors[st]);
-
-  const chart = new window.Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels: statuses,
-      datasets: [
-        {
-          label: 'Pipeline by status',
-          data: totalByStatus,
-          backgroundColor: backgroundColors,
-          borderColor: backgroundColors,
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            boxWidth: 14,
-            boxHeight: 14,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const v = ctx.parsed;
-              const value = Number(v);
-              const formatted = Number.isFinite(value)
-                ? value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-                : '$0';
-              const label = ctx.label ? `${ctx.label}: ` : '';
-              return `${label}${formatted}`;
-            },
-          },
-        },
-      },
-      cutout: '62%',
-    },
-  });
-
-  canvas.__analyticsChartInstance = chart;
-}
 
 function showInvoices() {
   console.log('→ showInvoices');
@@ -138,13 +67,8 @@ function showInvoices() {
   if (invoicesSection) invoicesSection.hidden = false;
 
 
-  if (typeof window.checkOverdueInvoices === 'function') {
-    window.checkOverdueInvoices();
-  }
-
-  if (typeof window.renderInvoices === 'function') {
-    window.renderInvoices();
-  }
+  checkOverdueInvoices();
+  renderInvoices();
 }
 
 
@@ -161,16 +85,21 @@ function showAnalytics() {
   // FIX: Chart.js в responsive mode може розтягувати контейнер в grid.
   // Даємо жорстку висоту, щоб не було “вічного” підлаштування.
   grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = '1fr 1fr';
+  grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(400px, 1fr))';
   grid.style.gap = '20px';
 
   grid.innerHTML = `
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px; padding-bottom:100px;  border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto;">
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; margin: 20px auto; padding: 24px; padding-bottom:100px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
       <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Total Pipeline Value by Status</h2>
       <canvas id="analyticsChart"></canvas>
     </div>
 
-    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; max-width: 600px; margin: 20px auto; padding: 24px;  border-radius: var(--radius-lg); border: 1px solid var(--border); grid-column: auto; overflow: hidden;">
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; margin: 20px auto; padding: 24px; padding-bottom:100px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
+      <h2 style="margin-top:0; margin-bottom: 20px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">Sales Funnel Conversion</h2>
+      <canvas id="funnelChart"></canvas>
+    </div>
+
+    <div class="chart-wrapper" style="position: relative; height: 400px; width: 100%; margin: 20px auto; padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden;">
       <h2 style="margin-top:0; margin-bottom: 18px; font-size:18px; font-weight:900; color: var(--text); text-align:center;">AI Sales Forecast</h2>
 
       <button id="generateAiBtn" class="btn-primary" style="width:100%; margin-bottom:15px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Forecast</button>
@@ -180,9 +109,7 @@ function showAnalytics() {
   `;
 
   setTimeout(() => {
-    if (typeof window.renderAnalyticsChart === 'function') {
-      window.renderAnalyticsChart();
-    }
+    renderAnalyticsChart();
   }, 50);
 }
 
@@ -193,16 +120,29 @@ function showClients() {
   resetClientsGrid();
 
   const clientsGrid = document.getElementById('clientsGrid');
+  const clientsHeader = document.getElementById('clientsHeader');
+  const clientsSummaryStats = document.getElementById('clientsSummaryStats');
+  
   if (clientsGrid) clientsGrid.hidden = false;
+  if (clientsHeader) clientsHeader.hidden = false;
+  if (clientsSummaryStats) clientsSummaryStats.hidden = false;
 
-  if (typeof getFilteredClients === 'function' && typeof renderClients === 'function') {
-    const filtered = getFilteredClients();
-    if (typeof animateGridRefresh === 'function') animateGridRefresh();
-    renderClients(filtered);
-  }
+  const filtered = getFilteredClients();
+  animateGridRefresh();
+  renderClients(filtered);
 }
 
 
+
+function showTasks() {
+  hideAllModules();
+  setActiveNav('tasks');
+  const tasksSection = document.getElementById('tasksSection');
+  if (tasksSection) {
+    tasksSection.hidden = false;
+    renderTasks();
+  }
+}
 
 function wireUiNavigation() {
   document.querySelectorAll('.sidebar nav li[data-nav]').forEach((li) => {
@@ -212,6 +152,7 @@ function wireUiNavigation() {
         if (key === 'clients') return showClients();
         if (key === 'invoices') return showInvoices();
         if (key === 'analytics') return showAnalytics();
+        if (key === 'tasks') return showTasks();
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Navigation error:', err);
@@ -222,15 +163,63 @@ function wireUiNavigation() {
 
 
 
-window.CRMAdminNav = {
-  wireUiNavigation,
-};
+function initTheme() {
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  if (!themeToggleBtn) return;
+  
+  const currentTheme = window.localStorage.getItem('crm_theme') || 'dark';
+  if (currentTheme === 'light') {
+    document.body.classList.add('theme-light');
+    themeToggleBtn.textContent = '🌙';
+  } else {
+    document.body.classList.remove('theme-light');
+    themeToggleBtn.textContent = '🌞';
+  }
 
-// Auto-wire once DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => wireUiNavigation());
-} else {
+  themeToggleBtn.addEventListener('click', () => {
+    document.body.classList.toggle('theme-light');
+    const isLight = document.body.classList.contains('theme-light');
+    window.localStorage.setItem('crm_theme', isLight ? 'light' : 'dark');
+    themeToggleBtn.textContent = isLight ? '🌙' : '🌞';
+    
+    setTimeout(() => {
+      if (document.querySelector('.sidebar nav li[data-nav="analytics"]').classList.contains('active')) {
+        renderAnalyticsChart();
+      }
+    }, 50);
+  });
+}
+
+function initMobileMenu() {
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('mobileOverlay');
+
+  if (!mobileMenuBtn || !sidebar || !overlay) return;
+
+  function closeMenu() {
+    sidebar.classList.remove('sidebar-open');
+    overlay.classList.remove('show');
+  }
+
+  mobileMenuBtn.addEventListener('click', () => {
+    sidebar.classList.add('sidebar-open');
+    overlay.classList.add('show');
+  });
+
+  overlay.addEventListener('click', closeMenu);
+
+  document.querySelectorAll('.sidebar nav li').forEach(li => {
+    li.addEventListener('click', closeMenu);
+  });
+}
+
+export function initNavigation() {
   wireUiNavigation();
+  initTheme();
+  initMobileMenu();
+  // By default show clients view on load
+  showClients();
 }
 
 

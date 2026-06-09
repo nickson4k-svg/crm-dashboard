@@ -1,12 +1,24 @@
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>B2B CRM Dashboard</title>
+    <script>
+        window.addEventListener('error', function (e) {
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = 'position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:10px;font-size:14px;';
+            errDiv.textContent = 'Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
+            document.body.appendChild(errDiv);
+        });
+    </script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+    <div id="mobileOverlay"></div>
     <div class="app-container">
         <aside class="sidebar">
             <div class="logo">CRM.Admin</div>
@@ -32,12 +44,23 @@
                         </span>
                         <span class="nav-label">Аналітика</span>
                     </li>
+                    <li data-nav="tasks">
+                        <span class="nav-icon" aria-hidden="true">
+                            <i class="fa-solid fa-list-check"></i>
+                        </span>
+                        <span class="nav-label">Завдання</span>
+                    </li>
                 </ul>
             </nav>
         </aside>
 
         <main class="main-content">
+            <div class="clients-ambient-glow"></div>
+            <div class="clients-ambient-glow clients-ambient-glow--left"></div>
             <header class="topbar">
+                <button id="mobileMenuBtn" class="btn-secondary d-md-none" aria-label="Open mobile menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <div class="search-wrap">
                     <span class="search-icon" aria-hidden="true">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -46,14 +69,19 @@
                 </div>
 
                 <div class="topbar-actions">
-                    <button id="openModalBtn" class="btn-primary"><span aria-hidden="true">+</span> Додати клієнта</button>
+                    <button id="themeToggleBtn" class="btn-secondary" aria-label="Toggle light/dark theme"
+                        title="Змінити тему">🌞</button>
+                    <button id="openModalBtn" class="btn-primary"><span aria-hidden="true">+</span> Додати
+                        клієнта</button>
 
                     <div class="profile" aria-label="Admin profile">
-                        <button type="button" id="profileBtn" class="profile-btn" aria-haspopup="menu" aria-expanded="false">
+                        <button type="button" id="profileBtn" class="profile-btn" aria-haspopup="menu"
+                            aria-expanded="false">
 
                             <span class="profile-avatar" aria-hidden="true">JD</span>
                             <span class="profile-text">John Doe <span class="profile-role">(Admin)</span></span>
-                            <span class="profile-caret" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                            <span class="profile-caret" aria-hidden="true"><i
+                                    class="fa-solid fa-chevron-down"></i></span>
                         </button>
                         <div id="profileMenu" class="profile-menu" role="menu" aria-labelledby="profileBtn" hidden>
                             <button type="button" class="menu-item" role="menuitem">Профіль</button>
@@ -67,7 +95,7 @@
                 </div>
             </header>
 
-            <section class="clients-header">
+            <section id="clientsHeader" class="clients-header">
                 <div class="clients-heading">
                     <div class="clients-title">Клієнти</div>
                     <div class="clients-sub">Керуйте лідами, демо та угодами.</div>
@@ -99,16 +127,17 @@
                             <option value="name-asc">Ім'я: А-Я</option>
                         </select>
 
-                      
-
+                        <button id="viewToggleBtn" type="button" class="btn-secondary" title="Переключити вигляд">
+                            <i class="fa-solid fa-table-columns"></i> Kanban
+                        </button>
                         <button id="exportCsvBtn" type="button" class="btn-secondary">Експорт CSV</button>
                     </div>
                 </div>
             </section>
 
 
-          
-            <section class="summary-stats" aria-label="Summary statistics">
+
+            <section id="clientsSummaryStats" class="summary-stats" aria-label="Summary statistics">
                 <div class="summary-stats__grid">
                     <article class="stat-card" aria-live="polite">
                         <div class="stat-card__label">Total Clients</div>
@@ -128,10 +157,20 @@
             </section>
 
             <section id="clientsGrid" class="clients-grid" aria-live="polite">
-                </section>
+            </section>
 
             <section id="invoicesSection" class="invoices-section" hidden>
                 <div id="invoicesGrid" class="invoices-grid" aria-live="polite"></div>
+            </section>
+
+            <section id="tasksSection" class="module" hidden>
+                <div class="clients-header">
+                    <div class="clients-heading">
+                        <div class="clients-title">Завдання</div>
+                        <div class="clients-sub">Автоматичні нагадування (Lead, Nurturing, Demo).</div>
+                    </div>
+                </div>
+                <div id="tasksGrid" class="clients-grid" style="margin-top: 20px;"></div>
             </section>
         </main>
     </div>
@@ -168,8 +207,13 @@
                     </div>
                     <div class="field">
                         <label for="clientTotalValue" class="sr-only">Total Value</label>
-                        <input type="number" id="clientTotalValue" placeholder="Total Value (USD)" min="0" step="100" required>
+                        <input type="number" id="clientTotalValue" placeholder="Total Value (USD)" min="0" step="100"
+                            required>
                         <div class="field-error" id="clientTotalValueError" role="alert"></div>
+                    </div>
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <label class="sr-only">Нотатки</label>
+                        <div id="clientNotesEditor" style="height: 120px; border-radius: 0 0 8px 8px;"></div>
                     </div>
                 </div>
 
@@ -177,7 +221,8 @@
                     <div style="display:flex; flex-direction:column; gap:12px; padding-top:2px;">
                         <div class="field" style="grid-column: 1 / -1;">
                             <label for="deleteUserInput" class="sr-only">Введіть delete</label>
-                            <input id="deleteUserInput" type="text" placeholder="Введіть delete" autocomplete="off" required />
+                            <input id="deleteUserInput" type="text" placeholder="Введіть delete" autocomplete="off"
+                                required />
                             <div class="field-error" id="deleteUserError" role="alert"></div>
                         </div>
                     </div>
@@ -194,16 +239,14 @@
 
 
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"
+        referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="ui-navi.js"></script>
-
-
-    <script src="data/clients.js"></script>
-    <script src="invoices.js"></script>
-    <script src="script.js"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script type="module" src="main.js"></script>
 
 
 </body>
-</html>
 
+</html>

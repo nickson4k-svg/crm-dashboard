@@ -1,26 +1,26 @@
-const LS_KEY = "crm_clients";
+import { getClients, saveClients, getInvoices, addClient, updateClient, deleteClient } from './store.js';
 
-function loadClientsFromLocalStorage() {
-  try {
-    const raw = window.localStorage?.getItem(LS_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return null;
-    return parsed;
-  } catch {
-    return null;
+let currentView = 'grid'; // 'grid' | 'kanban'
+let selectedClientIds = new Set();
+
+let quill = null;
+setTimeout(() => {
+  if (document.getElementById('clientNotesEditor') && window.Quill) {
+    quill = new window.Quill('#clientNotesEditor', {
+      theme: 'snow',
+      placeholder: 'Додайте нотатки (підтримує форматування)...',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          ['link', 'clean']
+        ]
+      }
+    });
   }
-}
+}, 300);
 
-function saveToLocalStorage() {
-  try {
-    window.localStorage?.setItem(LS_KEY, JSON.stringify(clients));
-  } catch {
-  }
-}
-
-const clients = loadClientsFromLocalStorage() || (window.CRMAdminClients || []);
-let nextId = clients.length ? Math.max(...clients.map((c) => c.id)) + 1 : 1;
+let nextId = getClients().length ? Math.max(...getClients().map((c) => c.id)) + 1 : 1;
 
 const clientsGrid = document.getElementById("clientsGrid");
 const searchInput = document.getElementById("searchInput");
@@ -130,6 +130,61 @@ function updateSummaryStats(currentList) {
   totalPipelineEl.textContent = formatUSD(totalPipelineValue);
   wonDealsEl.textContent = String(wonDeals);
 }
+function calculateLeadScore(client) {
+  let score = 0;
+  switch (client.status) {
+    case 'Won': score += 80; break;
+    case 'Demo': score += 60; break;
+    case 'Nurturing': score += 30; break;
+    case 'Lead': score += 10; break;
+    case 'Lost': score = 0; break;
+  }
+  const val = Number(client.totalValue) || 0;
+  if (val > 10000) score += 20;
+  else if (val > 5000) score += 10;
+  else if (val > 1000) score += 5;
+  return Math.min(100, score);
+}
+
+function getScoreBadgeHtml(score) {
+  let colorClass = 'score-cold';
+  if (score >= 70) colorClass = 'score-hot';
+  else if (score >= 40) colorClass = 'score-warm';
+  return `<span class="lead-score-badge ${colorClass}">🔥 ${score}</span>`;
+}
+
+function renderSkeleton() {
+  if (!clientsGrid) return;
+  clientsGrid.className = "clients-grid";
+  clientsGrid.innerHTML = Array(6).fill(`
+    <article class="client-card skeleton-card">
+      <div class="client-card__top">
+        <div class="skeleton-line avatar"></div>
+        <div style="flex:1;">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="client-card__bottom" style="margin-top: 15px;">
+        <div class="skeleton-line short" style="width: 30%;"></div>
+        <div class="skeleton-line short" style="width: 20%;"></div>
+      </div>
+    </article>
+  `).join("");
+}
+
+function updateBulkActionBar() {
+  const bar = document.getElementById('bulkActionBar');
+  const countEl = document.getElementById('bulkSelectedCount');
+  if (!bar || !countEl) return;
+  
+  if (selectedClientIds.size > 0) {
+    countEl.textContent = selectedClientIds.size;
+    bar.hidden = false;
+  } else {
+    bar.hidden = true;
+  }
+}
 
 function renderClients(list) {
   if (!clientsGrid) return;
@@ -137,12 +192,13 @@ function renderClients(list) {
   updateSummaryStats(list);
 
   if (resultsHint) {
-    const total = clients.length;
+    const total = getClients().length;
     const shown = list.length;
     resultsHint.textContent = `Показано ${shown} з ${total} клієнтів`;
   }
 
   if (!list.length) {
+    clientsGrid.className = "clients-grid";
     clientsGrid.innerHTML = `
       <div class="empty-state">
         <div class="empty-title">Немає збігів</div>
@@ -152,18 +208,25 @@ function renderClients(list) {
     return;
   }
 
-  clientsGrid.innerHTML = list
-    .map((client) => {
+  if (currentView === 'kanban') {
+    renderKanban(list);
+  } else {
+    clientsGrid.className = "clients-grid";
+    clientsGrid.innerHTML = list
+      .map((client) => {
       const initial = (client.contactName || "?").slice(0, 1).toUpperCase();
       const tagClass = getStatusTagClass(client.status);
 
       return `
         <article class="client-card" data-id="${client.id}">
+          <div class="client-checkbox-wrap">
+            <input type="checkbox" class="client-checkbox" value="${client.id}" ${selectedClientIds.has(client.id) ? 'checked' : ''} aria-label="Вибрати клієнта">
+          </div>
           <div class="client-card__top">
             <div class="client-avatar" aria-hidden="true">${escapeText(initial)}</div>
 
             <div class="client-meta">
-              <div class="client-name">${escapeText(client.contactName)}</div>
+              <div class="client-name">${escapeText(client.contactName)} ${getScoreBadgeHtml(calculateLeadScore(client))}</div>
               <div class="client-company">${escapeText(client.companyName)}</div>
             </div>
           </div>
@@ -189,6 +252,108 @@ function renderClients(list) {
       `;
     })
     .join("");
+  }
+}
+
+function renderKanban(list) {
+  clientsGrid.className = "kanban-board";
+  
+  const columnsHtml = STATUS_ORDER.map(status => {
+    const colClients = list.filter(c => c.status === status);
+    
+    const cardsHtml = colClients.map(client => {
+      const initial = (client.contactName || "?").slice(0, 1).toUpperCase();
+      const tagClass = getStatusTagClass(client.status);
+      return `
+        <article class="client-card kanban-card" data-id="${client.id}" draggable="true">
+          <div class="client-card__top">
+            <div class="client-avatar" aria-hidden="true">${escapeText(initial)}</div>
+            <div class="client-meta">
+              <div class="client-name">${escapeText(client.contactName)} ${getScoreBadgeHtml(calculateLeadScore(client))}</div>
+              <div class="client-company">${escapeText(client.companyName)}</div>
+            </div>
+          </div>
+          <div class="client-card__bottom">
+            <div class="client-bottom-left">
+              <span class="status-pill-wrap">
+                <span class="${tagClass}" aria-label="Status: ${escapeText(client.status)}">${escapeText(client.status)}</span>
+              </span>
+            </div>
+            <div class="client-bottom-right">
+              <div class="client-id">#${escapeText(client.id)}</div>
+              <div class="client-total" title="Total Value">${escapeText(formatUSD(client.totalValue))}</div>
+            </div>
+          </div>
+          <div class="client-card__actions">
+            <button type="button" class="btn-secondary btn-edit-user" data-edit-id="${client.id}">Редагувати</button>
+            <button type="button" class="btn-secondary btn-delete-user" data-delete-id="${client.id}">Видалити</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    return `
+      <div class="kanban-column" data-status="${status}">
+        <div class="kanban-header">
+          ${status} <span class="kanban-count">${colClients.length}</span>
+        </div>
+        ${cardsHtml}
+      </div>
+    `;
+  }).join('');
+
+  clientsGrid.innerHTML = columnsHtml;
+  wireDragAndDrop();
+}
+
+function updateClientStatus(id, newStatus) {
+  updateClient(id, { status: newStatus });
+  window.showToast?.(`Статус змінено на ${newStatus}`, 'success');
+  if (newStatus === 'Won') {
+    window.confetti?.({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+  }
+  renderClients(getFilteredClients());
+}
+
+function wireDragAndDrop() {
+  const cards = document.querySelectorAll('.kanban-card');
+  const columns = document.querySelectorAll('.kanban-column');
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      card.classList.add('kanban-ghost');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.id);
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('kanban-ghost');
+    });
+  });
+
+  columns.forEach(col => {
+    col.addEventListener('dragover', (e) => {
+      e.preventDefault(); 
+      e.dataTransfer.dropEffect = 'move';
+      col.classList.add('kanban-drag-over');
+    });
+
+    col.addEventListener('dragleave', () => {
+      col.classList.remove('kanban-drag-over');
+    });
+
+    col.addEventListener('drop', (e) => {
+      e.preventDefault();
+      col.classList.remove('kanban-drag-over');
+      
+      const clientId = e.dataTransfer.getData('text/plain');
+      const newStatus = col.dataset.status;
+
+      if (clientId && newStatus) {
+        updateClientStatus(Number(clientId), newStatus);
+      }
+    });
+  });
 }
 
 function getFilteredClients() {
@@ -196,7 +361,7 @@ function getFilteredClients() {
   const statusFilter = (document.getElementById("filterStatus")?.value || "all");
   const sortValue = (document.getElementById("sortClients")?.value || "default");
 
-  const filtered = clients.filter((c) => {
+  const filtered = getClients().filter((c) => {
     const contact = normalize(c.contactName);
     const company = normalize(c.companyName);
     const status = normalize(c.status);
@@ -253,6 +418,11 @@ function openModal() {
 
   modalOverlay.classList.add("is-open");
   modalOverlay.setAttribute("aria-hidden", "false");
+
+  if (quill) quill.root.innerHTML = '';
+
+  const timelineContainer = document.getElementById("clientTimelineContainer");
+  if (timelineContainer) timelineContainer.hidden = true;
 
   setTimeout(() => clientNameInput?.focus(), 60);
 }
@@ -334,9 +504,12 @@ function debounce(fn, delay = 250) {
 }
 
 const onSearchInput = debounce(() => {
-  const filtered = getFilteredClients();
-  animateGridRefresh();
-  renderClients(filtered);
+  renderSkeleton();
+  setTimeout(() => {
+    const filtered = getFilteredClients();
+    animateGridRefresh();
+    renderClients(filtered);
+  }, 300);
 }, 250);
 
 searchInput?.addEventListener("input", onSearchInput);
@@ -345,16 +518,22 @@ const filterStatus = document.getElementById("filterStatus");
 const clearFiltersBtn = document.getElementById("clearFiltersBtn");
 
 filterStatus?.addEventListener("change", () => {
-  const filtered = getFilteredClients();
-  animateGridRefresh();
-  renderClients(filtered);
+  renderSkeleton();
+  setTimeout(() => {
+    const filtered = getFilteredClients();
+    animateGridRefresh();
+    renderClients(filtered);
+  }, 300);
 });
 
 const sortClients = document.getElementById("sortClients");
 sortClients?.addEventListener("change", () => {
-  const filtered = getFilteredClients();
-  animateGridRefresh();
-  renderClients(filtered);
+  renderSkeleton();
+  setTimeout(() => {
+    const filtered = getFilteredClients();
+    animateGridRefresh();
+    renderClients(filtered);
+  }, 300);
 });
 
 clearFiltersBtn?.addEventListener("click", () => {
@@ -387,6 +566,7 @@ addClientForm?.addEventListener("submit", (e) => {
   const companyName = companyNameInput.value.trim();
   const status = clientStatusInput.value;
   const totalValue = Number(clientTotalValueInput.value);
+  const notes = quill ? quill.root.innerHTML : '';
 
   if (mode === "add") {
 
@@ -396,31 +576,33 @@ addClientForm?.addEventListener("submit", (e) => {
       companyName,
       status,
       totalValue,
+      notes,
     };
 
-    clients.push(newClient);
+    addClient(newClient);
+    window.showToast?.('Клієнта успішно створено!', 'success');
   } else {
     const editId = Number(modalOverlay?.dataset.editTargetId);
     if (!Number.isFinite(editId)) return;
 
-    const idx = clients.findIndex((c) => c.id === editId);
-    if (idx === -1) return;
-
-    clients[idx] = {
-      ...clients[idx],
+    updateClient(editId, {
       contactName,
       companyName,
       status,
       totalValue,
-    };
+      notes,
+    });
+    window.showToast?.('Дані клієнта оновлено!', 'success');
   }
 
-  saveToLocalStorage();
+  if (status === 'Won') {
+    window.confetti?.({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+  }
 
   // Warning: if client set to Lost and has unpaid invoices
   try {
-    if (status === "Lost" && window.CRMAdminInvoices) {
-      const invs = window.CRMAdminInvoices || [];
+    if (status === "Lost") {
+      const invs = getInvoices() || [];
       const hasUnpaid = invs.some((inv) => Number(inv.clientId) === Number(editId ?? modalOverlay?.dataset.editTargetId) && inv.status !== "Paid" && inv.status !== "Cancelled");
       // Note: editId is only available in edit branch; fallback to current editTargetId.
       const currentClientId = mode === "edit" ? editId : null;
@@ -464,11 +646,12 @@ confirmDeleteBtn?.addEventListener("click", () => {
 
   const id = Number(modalOverlay?.dataset.deleteTargetId);
   if (Number.isFinite(id)) {
-    const idx = clients.findIndex((c) => c.id === id);
-    if (idx !== -1) clients.splice(idx, 1);
+    const idx = getClients().findIndex((c) => c.id === id);
+    if (idx !== -1) getClients().splice(idx, 1);
+    window.showToast?.('Клієнта видалено', 'success');
   }
 
-  saveToLocalStorage();
+  saveClients(getClients());
   closeModal();
 
   const filtered = getFilteredClients();
@@ -528,7 +711,7 @@ function openDeleteUserConfirm(targetId) {
 function openEditModal(editId) {
   if (!modalOverlay) return;
 
-  const client = clients.find((c) => c.id === editId);
+  const client = getClients().find((c) => c.id === editId);
   if (!client) return;
 
   const title = document.getElementById("modalTitle");
@@ -542,6 +725,32 @@ function openEditModal(editId) {
   if (companyNameInput) companyNameInput.value = client.companyName ?? "";
   if (clientStatusInput) clientStatusInput.value = client.status ?? "Lead";
   if (clientTotalValueInput) clientTotalValueInput.value = Number(client.totalValue ?? 0);
+  
+  if (quill) quill.root.innerHTML = client.notes || '';
+
+  const timelineContainer = document.getElementById("clientTimelineContainer");
+  const timelineEl = document.getElementById("clientTimeline");
+  if (timelineContainer && timelineEl) {
+    timelineContainer.hidden = false;
+    const hist = client.history || [];
+    if (hist.length > 0) {
+      timelineEl.innerHTML = hist.map(item => {
+        const d = new Date(item.date);
+        const fmtDate = d.toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">${escapeText(fmtDate)}</div>
+              <div class="timeline-text">${escapeText(item.text)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      timelineEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Історія відсутня</div>';
+    }
+  }
 
   clearErrors();
   clearDeleteError();
@@ -592,23 +801,7 @@ document.addEventListener("click", () => closeProfileMenu());
 wireProfileMenuActions();
 
 function showToast(message) {
-  const container = document.getElementById("toastContainer");
-  if (!container) return;
-
-  const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.textContent = message;
-
-  container.hidden = false;
-  container.innerHTML = "";
-  container.appendChild(toast);
-
-  window.clearTimeout(showToast._t);
-  showToast._t = window.setTimeout(() => {
-    window.setTimeout(() => {
-      container.hidden = true;
-    }, 400);
-  }, 2500);
+  window.showToast?.(message);
 }
 
 
@@ -660,6 +853,17 @@ function downloadTextFile(filename, text, mimeType) {
   URL.revokeObjectURL(url);
 }
 
+const viewToggleBtn = document.getElementById("viewToggleBtn");
+viewToggleBtn?.addEventListener("click", () => {
+  currentView = currentView === 'grid' ? 'kanban' : 'grid';
+  if (currentView === 'kanban') {
+    viewToggleBtn.innerHTML = '<i class="fa-solid fa-list"></i> Сітка';
+  } else {
+    viewToggleBtn.innerHTML = '<i class="fa-solid fa-table-columns"></i> Kanban';
+  }
+  renderClients(getFilteredClients());
+});
+
 const exportCsvBtn = document.getElementById("exportCsvBtn");
 exportCsvBtn?.addEventListener("click", () => {
   const filtered = getFilteredClients();
@@ -673,187 +877,50 @@ exportCsvBtn?.addEventListener("click", () => {
   downloadTextFile("clients-report.csv", csv, "text/csv;charset=utf-8");
 });
 
-renderClients(clients);
+export { renderClients, getFilteredClients, animateGridRefresh };
 
-window.renderAnalyticsChart = function () {
-  const canvas = document.getElementById("analyticsChart");
-  if (canvas && typeof window.Chart !== "undefined") {
-    if (window.analyticsChartInstance && typeof window.analyticsChartInstance.destroy === "function") {
-      window.analyticsChartInstance.destroy();
-      window.analyticsChartInstance = null;
+clientsGrid?.addEventListener('change', (e) => {
+  if (e.target.classList.contains('client-checkbox')) {
+    const id = Number(e.target.value);
+    if (e.target.checked) selectedClientIds.add(id);
+    else selectedClientIds.delete(id);
+    updateBulkActionBar();
+    
+    const card = e.target.closest('.client-card');
+    if (card) {
+      if (e.target.checked) card.classList.add('selected');
+      else card.classList.remove('selected');
     }
-
-    const statuses = ["Lead", "Nurturing", "Demo", "Won", "Lost"];
-    const colors = {
-      Lead: "#7C4DFF",
-      Nurturing: "#F59E0B",
-      Demo: "#3B82F6",
-      Won: "#22C55E",
-      Lost: "#EF4444",
-    };
-
-    const totalByStatus = statuses.map((st) => {
-      return clients.reduce((sum, c) => {
-        if (c?.status !== st) return sum;
-        const v = Number(c?.totalValue);
-        return sum + (Number.isFinite(v) ? v : 0);
-      }, 0);
-    });
-
-    const backgroundColor = statuses.map((st) => colors[st]);
-
-    const chart = new window.Chart(canvas, {
-      type: "doughnut",
-      data: {
-        labels: statuses,
-        datasets: [
-          {
-            data: totalByStatus,
-            backgroundColor,
-            borderColor: "#121821",
-            borderWidth: 4,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: {
-              color: "rgba(230,237,243,0.92)",
-            },
-          },
-        },
-      },
-    });
-
-    window.analyticsChartInstance = chart;
   }
-
-  const generateBtn = document.getElementById("generateAiBtn");
-  const aiContent = document.getElementById("aiInsightsContent");
-  if (!generateBtn || !aiContent) return;
-
-  if (!generateBtn.__aiWired) {
-    generateBtn.__aiWired = true;
-
-    generateBtn.addEventListener("click", async () => {
-      const btn = generateBtn;
-      btn.disabled = true;
-      btn.dataset.busy = "1";
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Аналізую воронку...`;
-
-      aiContent.innerHTML = "";
-      aiContent.innerHTML = `
-        <div style="padding: 14px 0;">
-          <div style="color: var(--text); font-weight: 900; margin-bottom: 8px;">Analyzing with AI...</div>
-          <div style="height: 10px; background: rgba(230,237,243,0.10); border-radius: 999px; overflow: hidden; margin-bottom: 10px;">
-            <div style="height:100%; width:45%; background: rgba(124,77,255,0.75); animation: ai-skel 1.1s ease-in-out infinite;"></div>
-          </div>
-          <div style="height: 10px; background: rgba(230,237,243,0.10); border-radius: 999px; overflow: hidden; margin-bottom: 10px;">
-            <div style="height:100%; width:70%; background: rgba(124,77,255,0.50); animation: ai-skel 1.1s ease-in-out infinite; animation-delay: 0.15s;"></div>
-          </div>
-          <div style="height: 10px; background: rgba(230,237,243,0.10); border-radius: 999px; overflow: hidden;">
-            <div style="height:100%; width:55%; background: rgba(124,77,255,0.35); animation: ai-skel 1.1s ease-in-out infinite; animation-delay: 0.3s;"></div>
-          </div>
-        </div>
-        <style>
-          @keyframes ai-skel { 0% { transform: translateX(-20%); } 50% { transform: translateX(20%); } 100% { transform: translateX(-20%); } }
-        </style>
-      `;
-
-     try {
-      
-        const actualTotal = clients
-          .filter(c => c.status === "Won") 
-          .reduce((sum, c) => sum + (Number(c.totalValue) || 0), 0);
-
-    // Просто робимо запит без жодних ключів і паролів
-const response = await fetch("https://crm-dashboard-eight-kappa.vercel.app/api/forecast", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    clients
-  })
 });
 
-// Якщо була помилка мережі або сервера
-if (!response.ok) {
-  throw new Error(`AI request failed: ${response.status}`);
-}
-            
-        
+document.getElementById('bulkCancelBtn')?.addEventListener('click', () => {
+  selectedClientIds.clear();
+  updateBulkActionBar();
+  renderClients(getFilteredClients());
+});
 
-        if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
-
-        const aiResult = await response.json();
-
-        const insightText = String(aiResult?.insight ?? "");
-        const expectedRevenue = Number(aiResult?.expectedTotal);
-
-        const safeExpected = Number.isFinite(expectedRevenue) ? expectedRevenue : actualTotal * 1.2;
-
-        aiContent.innerHTML = `
-          <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">Smart Insight</div>
-          <div style="color: var(--text); opacity: 0.95; margin-bottom: 14px; line-height: 1.4; font-size: 14px;">
-            ${insightText}
-          </div>
-          <div style="height: 220px;">
-            <canvas id="aiRevenueBarChart"></canvas>
-          </div>
-        `;
-
-        if (typeof window.Chart !== "undefined") {
-          const barCanvas = document.getElementById("aiRevenueBarChart");
-          if (barCanvas) {
-            if (window.aiRevenueBarChartInstance && typeof window.aiRevenueBarChartInstance.destroy === "function") {
-              window.aiRevenueBarChartInstance.destroy();
-            }
-
-            window.aiRevenueBarChartInstance = new window.Chart(barCanvas, {
-              type: "bar",
-              data: {
-                labels: ["Expected vs Actual Revenue"],
-                datasets: [
-                  {
-                    label: "Actual Revenue",
-                    data: [actualTotal],
-                    backgroundColor: "rgba(59,130,246,0.75)",
-                    borderColor: "#3B82F6",
-                    borderWidth: 1,
-                  },
-                  {
-                    label: "Expected Revenue",
-                    data: [safeExpected],
-                    backgroundColor: "rgba(245,158,11,0.70)",
-                    borderColor: "#F59E0B",
-                    borderWidth: 1,
-                  },
-                ],
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-              },
-            });
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        const msg = err && err.message ? String(err.message) : String(err);
-        aiContent.innerHTML = `
-          <div style="font-weight: 900; font-size: 14px; margin-bottom: 10px;">AI Error</div>
-          <div style="color: var(--text); opacity: 0.95; font-size: 14px; white-space: pre-wrap;">Failed to analyze pipeline.\n${msg}</div>
-        `;
-      } finally {
-        btn.disabled = false;
-        btn.dataset.busy = "";
-        btn.innerHTML = "<i class=\"fa-solid fa-wand-magic-sparkles\"></i> Generate AI Forecast";
-      }
-    });
+document.getElementById('bulkDeleteBtn')?.addEventListener('click', () => {
+  if (confirm('Видалити вибраних клієнтів? Цю дію неможливо скасувати.')) {
+    selectedClientIds.forEach(id => deleteClient(id));
+    selectedClientIds.clear();
+    window.showToast?.('Вибраних клієнтів видалено', 'success');
+    updateBulkActionBar();
+    renderClients(getFilteredClients());
   }
-};
+});
 
+document.getElementById('bulkStatusSelect')?.addEventListener('change', (e) => {
+  const newStatus = e.target.value;
+  if (newStatus) {
+    selectedClientIds.forEach(id => updateClient(id, { status: newStatus }));
+    selectedClientIds.clear();
+    e.target.value = '';
+    window.showToast?.(`Статуси оновлено на ${newStatus}`, 'success');
+    if (newStatus === 'Won') {
+      window.confetti?.({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+    }
+    updateBulkActionBar();
+    renderClients(getFilteredClients());
+  }
+});

@@ -1,6 +1,4 @@
-
-
-window.CRMAdminClients = [
+export const initialClients = [
 
   {
     id: 1,

@@ -1,13 +1,7 @@
-/* Invoices module (Рахунки) — Vanilla JS + localStorage
-   Глобальні функції: loadInvoicesFromLocalStorage, saveInvoicesToLocalStorage,
-   renderInvoices, getFilteredInvoices, openInvoiceModal, generateInvoiceNumber,
-   calculateInvoiceTotals, checkOverdueInvoices
-*/
+/* Invoices module (Рахунки) */
+import { getClients, getInvoices, saveInvoices } from './store.js';
 
-(() => {
-  const LS_KEY = 'crm_invoices';
-
-  const STATUS = {
+const STATUS = {
     Draft: { label: 'Draft', className: 'invoice-status--draft', icon: 'fa-solid fa-file-lines' },
     Sent: { label: 'Sent', className: 'invoice-status--sent', icon: 'fa-solid fa-paper-plane' },
     Paid: { label: 'Paid', className: 'invoice-status--paid', icon: 'fa-solid fa-circle-check' },
@@ -64,29 +58,12 @@
     return toISODateInputValue(local);
   }
 
-  function loadInvoicesFromLocalStorage() {
-    try {
-      const raw = window.localStorage?.getItem(LS_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  }
-
   function saveInvoicesToLocalStorage() {
-    try {
-      window.localStorage?.setItem(LS_KEY, JSON.stringify(invoices));
-    } catch {
-      // ignore
-    }
+    saveInvoices(invoices);
   }
 
-  const clients = () => window.CRMAdminClients || [];
-
-  const invoices = loadInvoicesFromLocalStorage() || [];
+  const clients = getClients;
+  const invoices = getInvoices();
 
   function normalizeNumber(n) {
     const x = Number(n);
@@ -177,9 +154,8 @@
   }
 
   function seedDemoInvoicesIfNeeded() {
-    // Create exactly 5 demo invoices if localStorage is empty.
-    const raw = window.localStorage?.getItem(LS_KEY);
-    if (raw) return;
+    // Create exactly 5 demo invoices if empty.
+    if (invoices.length > 0) return;
 
     const c = clients();
     if (!Array.isArray(c) || c.length < 4) return;
@@ -279,9 +255,6 @@
 
   seedDemoInvoicesIfNeeded();
   checkOverdueInvoices();
-  if (!window.checkOverdueInvoices) window.checkOverdueInvoices = checkOverdueInvoices;
-  if (!window.loadInvoicesFromLocalStorage) window.loadInvoicesFromLocalStorage = loadInvoicesFromLocalStorage;
-  if (!window.saveInvoicesToLocalStorage) window.saveInvoicesToLocalStorage = saveInvoicesToLocalStorage;
 
   function getFilteredInvoices() {
     const q = ((document.getElementById('invoiceSearchInput')?.value || '').trim()).toLowerCase();
@@ -366,9 +339,9 @@
 
   function statusTagHtml(status) {
     const meta = getStatusMeta(status);
-    // Use existing status-tag style as baseline but add invoice-specific class.
-    const tagClass = meta.className ? `${meta.className}` : 'status-tag';
-    return `<span class="status-pill-wrap"><span class="invoice-status ${tagClass}">${escapeText(status)}</span></span>`;
+    const tagClass = meta.className ? `${meta.className}` : '';
+    const iconHtml = meta.icon ? `<i class="${meta.icon}"></i> ` : '';
+    return `<span class="invoice-status ${tagClass}">${iconHtml}${escapeText(status)}</span>`;
   }
 
   function getDueIndicator(inv) {
@@ -401,11 +374,11 @@
           <td>${tag}</td>
           <td class="invoice-actions">
             <div class="invoice-action-buttons">
-              <button type="button" class="btn-secondary btn-invoice-view" data-view-id="${inv.id}"><i class="fa-solid fa-eye"></i></button>
-              <button type="button" class="btn-secondary btn-invoice-edit" data-edit-id="${inv.id}"><i class="fa-solid fa-pen-to-square"></i></button>
-              <button type="button" class="btn-secondary btn-invoice-send" data-send-id="${inv.id}"><i class="fa-solid fa-paper-plane"></i></button>
-              <button type="button" class="btn-secondary btn-invoice-paid" data-paid-id="${inv.id}"><i class="fa-solid fa-money-bill-wave"></i></button>
-              <button type="button" class="btn-secondary btn-invoice-delete" data-delete-id="${inv.id}"><i class="fa-solid fa-trash"></i></button>
+              <button type="button" class="btn-secondary btn-invoice-view" data-view-id="${inv.id}" data-tooltip="Перегляд"><i class="fa-solid fa-eye"></i></button>
+              <button type="button" class="btn-secondary btn-invoice-edit" data-edit-id="${inv.id}" data-tooltip="Редагувати"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button type="button" class="btn-secondary btn-invoice-send" data-send-id="${inv.id}" data-tooltip="Надіслати"><i class="fa-solid fa-paper-plane"></i></button>
+              <button type="button" class="btn-secondary btn-invoice-paid" data-paid-id="${inv.id}" data-tooltip="Оплачено"><i class="fa-solid fa-money-bill-wave"></i></button>
+              <button type="button" class="btn-secondary btn-invoice-delete" data-delete-id="${inv.id}" data-tooltip="Видалити"><i class="fa-solid fa-trash"></i></button>
             </div>
           </td>
         </tr>
@@ -426,7 +399,7 @@
               <th>Дії</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody class="invoice-tbody">${rows}</tbody>
         </table>
       </div>
     `;
@@ -435,13 +408,14 @@
   }
 
   function renderInvoiceListCards(list) {
-    const cards = list.map((inv) => {
+    const cards = list.map((inv, idx) => {
       const client = clients().find((c) => Number(c.id) === Number(inv.clientId));
       const tag = statusTagHtml(inv.status);
       const due = getDueIndicator(inv);
+      const delay = (idx * 0.05).toFixed(2);
 
       return `
-        <article class="invoice-card" data-id="${inv.id}">
+        <article class="invoice-card" data-id="${inv.id}" style="animation-delay: ${delay}s;">
           <div class="invoice-card__top">
             <div>
               <div class="invoice-card__number">${escapeText(inv.invoiceNumber)}</div>
@@ -495,10 +469,13 @@
       .join('');
 
     container.innerHTML = `
-      <section class="invoices-header">
+      <div class="invoices-ambient-glow"></div>
+      <div class="invoices-ambient-glow invoices-ambient-glow--left"></div>
+
+      <section class="invoices-header-panel">
         <div class="invoices-heading">
-          <h2 class="invoices-title">Рахунки</h2>
-          <div class="invoices-sub">Керування інвойсами: CRUD, статуси, перегляд та друк.</div>
+          <h2 class="invoices-header-title">Рахунки</h2>
+          <div class="invoices-header-sub">Керування інвойсами: створення, редагування, надсилання та друк.</div>
         </div>
 
         <div class="invoice-filters">
@@ -540,20 +517,21 @@
       </section>
 
       <section class="invoice-summary-stats">
-        <div class="summary-stats__grid">
-          <article class="stat-card" aria-live="polite">
-            <div class="stat-card__label">Всього рахунків</div>
-            <div id="statTotalInvoices" class="stat-card__value">${escapeText(String(totalInvoices))}</div>
+        <div class="invoices-summary-grid">
+          <article class="stat-card-invoices stat-card-invoices--total" aria-live="polite">
+            <div class="stat-card-invoices__label"><i class="fa-solid fa-file-invoice"></i> Всього рахунків</div>
+            <div id="statTotalInvoices" class="stat-card-invoices__value">${escapeText(String(totalInvoices))}</div>
           </article>
 
-          <article class="stat-card" aria-live="polite">
-            <div class="stat-card__label">Очікується оплати</div>
-            <div id="statExpectedPayment" class="stat-card__value">${escapeText(window.formatUSD ? window.formatUSD(expectedSum) : String(expectedSum))}</div>
+          <article class="stat-card-invoices stat-card-invoices--expected" aria-live="polite">
+            <div class="stat-card-invoices__label"><i class="fa-solid fa-clock-rotate-left"></i> Очікується оплати</div>
+            <div id="statExpectedPayment" class="stat-card-invoices__value">${escapeText(window.formatUSD ? window.formatUSD(expectedSum) : String(expectedSum))}</div>
           </article>
 
-          <article class="stat-card" aria-live="polite">
-            <div class="stat-card__label">Прострочено</div>
-            <div id="statOverdue" class="stat-card__value">${escapeText(window.formatUSD ? window.formatUSD(overdueSum) : String(overdueSum))}<div style="margin-top:6px; font-size:12px; color: var(--muted); font-weight:900;">Кількість: ${escapeText(String(overdueCount))}</div></div>
+          <article class="stat-card-invoices stat-card-invoices--overdue" aria-live="polite">
+            <div class="stat-card-invoices__label"><i class="fa-solid fa-triangle-exclamation"></i> Прострочено</div>
+            <div id="statOverdue" class="stat-card-invoices__value">${escapeText(window.formatUSD ? window.formatUSD(overdueSum) : String(overdueSum))}</div>
+            <div class="stat-card-invoices__sub">Кількість: ${escapeText(String(overdueCount))}</div>
           </article>
         </div>
       </section>
@@ -980,7 +958,19 @@
     });
 
     modalRoot.querySelector('#invoiceExportPdfBtn')?.addEventListener('click', () => {
-      window.showToast?.('Функція у розробці');
+      const element = modalRoot.querySelector('.invoice-preview');
+      if (!element || typeof html2pdf === 'undefined') {
+        window.showToast?.('Не вдалося згенерувати PDF (бібліотека html2pdf не завантажена)');
+        return;
+      }
+      const opt = {
+        margin:       10,
+        filename:     `Invoice_${inv.invoiceNumber}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
     });
 
     modalRoot.querySelector('#invoiceEditFromViewBtn')?.addEventListener('click', () => {
@@ -1173,18 +1163,9 @@
     modalRoot.querySelector('#invoiceCancelBtn')?.addEventListener('click', closeAll);
   }
 
-  if (!window.openInvoiceModal) window.openInvoiceModal = openInvoiceModal;
-  if (!window.calculateInvoiceTotals) window.calculateInvoiceTotals = calculateInvoiceTotals;
-  if (!window.generateInvoiceNumber) window.generateInvoiceNumber = generateInvoiceNumber;
-  if (!window.getFilteredInvoices) window.getFilteredInvoices = getFilteredInvoices;
-
-  // First render when module loaded (if invoices section visible later, showInvoices will re-render)
-  // but also wire row actions now.
   wireInvoiceRowActionsOnce();
 
-  window.renderInvoices = renderInvoices;
-
-  // Ensure overdue status for initial render
   checkOverdueInvoices();
-})();
+
+export { renderInvoices, checkOverdueInvoices };
 
